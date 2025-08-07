@@ -23,7 +23,7 @@
       <strong>How to Play:</strong><br />
       Five Rounds. Five questions per round<br />
       Bottom after each round spins the Wheel<br />
-      Each player has 1x Phil Carr<br /><br />
+      Each team has 1x Phil Carr<br /><br />
       Good luck!
     </div>
 
@@ -35,8 +35,26 @@
     </div>
   </div>
 
-  <script>
-  document.getElementById('continueBtn').addEventListener('click', function () {
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+    authDomain: "philcarr-20ac0.firebaseapp.com",
+    projectId: "philcarr-20ac0",
+    storageBucket: "philcarr-20ac0.firebasestorage.app",
+    messagingSenderId: "770728636073",
+    appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+    measurementId: "G-XRCH682RNE"
+  };
+
+  // Initialize Firebase & Firestore
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  document.getElementById('continueBtn').addEventListener('click', async function () {
     const playerName = document.getElementById('playerName').value.trim();
 
     if (playerName === '') {
@@ -44,8 +62,22 @@
       return;
     }
 
-    localStorage.setItem('playerName', playerName);
-    window.location.href = 'round1.html';
+    try {
+      // Save player to Firestore with initial score 0 and round 1
+      await setDoc(doc(db, "players", playerName), {
+        name: playerName,
+        score: 0,
+        currentRound: 1,
+        timestamp: new Date()
+      });
+
+      localStorage.setItem('playerName', playerName);
+      window.location.href = 'round1.html';
+
+    } catch (error) {
+      alert("Error saving player: " + error.message);
+      console.error(error);
+    }
   });
 
   window.addEventListener('load', () => {
@@ -69,6 +101,7 @@
     });
   });
 </script>
+
 
 
 </body>

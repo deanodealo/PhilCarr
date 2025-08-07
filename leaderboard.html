@@ -120,30 +120,59 @@
     <button id="spinWheelBtn" type="button">Spin the Wheel!</button>
   </div>
 
-  <script>
-    // Example players data (replace with your real data)
-    const players = [
-      { name: 'Phil', score: 4 },
-      { name: 'John', score: 3 },
-      { name: 'Sally', score: 2 },
-      { name: 'Mary', score: 1 }
-    ];
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // Your Firebase config (replace with your own)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+      authDomain: "philcarr-20ac0.firebaseapp.com",
+      projectId: "philcarr-20ac0",
+      storageBucket: "philcarr-20ac0.firebasestorage.app",
+      messagingSenderId: "770728636073",
+      appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+      measurementId: "G-XRCH682RNE"
+    };
+
+    // Initialize Firebase and Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     const leaderboardList = document.getElementById('leaderboardList');
 
-    // Sort descending by score
-    players.sort((a, b) => b.score - a.score);
+    async function loadLeaderboard() {
+      try {
+        // Query players collection, order by score descending
+        const playersCol = collection(db, 'players');
+        const q = query(playersCol, orderBy('score', 'desc'));
+        const querySnapshot = await getDocs(q);
 
-    // Render leaderboard items
-    players.forEach(player => {
-      const item = document.createElement('div');
-      item.className = 'leaderboard-item';
-      item.innerHTML = `
-        <span class="player-name">${player.name}</span>
-        <span class="score">${player.score}</span>
-      `;
-      leaderboardList.appendChild(item);
-    });
+        // Clear existing list
+        leaderboardList.innerHTML = '';
+
+        // Add each player to the leaderboard
+        querySnapshot.forEach(doc => {
+          const data = doc.data();
+          const name = doc.id;
+          const score = data.score ?? 0;
+
+          const item = document.createElement('div');
+          item.className = 'leaderboard-item';
+          item.innerHTML = `
+            <span class="player-name">${name}</span>
+            <span class="score">${score}</span>
+          `;
+          leaderboardList.appendChild(item);
+        });
+      } catch (error) {
+        console.error("Error loading leaderboard:", error);
+        leaderboardList.textContent = 'Failed to load leaderboard.';
+      }
+    }
+
+    loadLeaderboard();
 
     // Redirect on Spin the Wheel button click
     document.getElementById('spinWheelBtn').addEventListener('click', () => {
