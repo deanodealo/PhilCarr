@@ -116,82 +116,66 @@ canvas {
       duration: 5,
       spins: 8,
       callbackFinished: function (indicatedSegment) {
-        document.getElementById('forfeitResult').textContent = 'Forfeit: ' + indicatedSegment.text;
+        const forfeitDiv = document.getElementById('forfeitResult');
+        forfeitDiv.textContent = 'Forfeit: ' + indicatedSegment.text;
         document.getElementById('nextRoundBtn').style.display = 'inline-block';
 
-        // Resume AudioContext first, then play winSound
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume().then(() => {
-            winSound.currentTime = 0;  // reset sound to start
-            winSound.play();
-          });
-        } else {
-          winSound.currentTime = 0;
-          winSound.play();
-        }
+        // Play win sound audibly after spin finishes
+        winSound.currentTime = 0;
+        winSound.play();
+
+        // Scroll smoothly to the forfeit result so user sees it
+        forfeitDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
   });
 
-document.getElementById('spinBtn').addEventListener('click', () => {
-  // Resume AudioContext on user interaction to unlock sound on mobile
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+  document.getElementById('spinBtn').addEventListener('click', () => {
+    // Resume AudioContext on user interaction to unlock sound on mobile
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
 
-  // Play spin sound immediately
-  spinSound.currentTime = 0;
-  spinSound.play();
+    // Play spin sound immediately
+    spinSound.currentTime = 0;
+    spinSound.play();
 
-  // Play winSound muted and paused immediately to unlock playback on mobile
-  winSound.muted = true;
-  winSound.currentTime = 0;
-  const playPromise = winSound.play();
-  if (playPromise !== undefined) {
-    playPromise.then(() => {
-      winSound.pause();
-      winSound.muted = false;
-    }).catch(() => {
-      // Ignore errors here
-      winSound.muted = false;
-    });
-  }
+    // Play winSound muted and paused immediately to unlock playback on mobile
+    winSound.muted = true;
+    winSound.currentTime = 0;
+    const playPromise = winSound.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        winSound.pause();
+        winSound.muted = false;
+      }).catch(() => {
+        // Ignore errors here
+        winSound.muted = false;
+      });
+    }
 
-  theWheel.stopAnimation(false);
-  theWheel.rotationAngle = 0;
-  theWheel.startAnimation();
-  document.getElementById('forfeitResult').textContent = '';
-});
+    theWheel.stopAnimation(false);
+    theWheel.rotationAngle = 0;
+    theWheel.startAnimation();
+    document.getElementById('forfeitResult').textContent = '';
+  });
 
-document.getElementById('goToWheelBtn').addEventListener('click', () => {
-  window.location.href = 'wheel.html';
-});
+  document.getElementById('nextRoundBtn').addEventListener('click', () => {
+    currentRound++;
+    localStorage.setItem('currentRound', currentRound.toString());
 
-document.getElementById('nextRoundBtn').addEventListener('click', () => {
-  currentRound++;
-  localStorage.setItem('currentRound', currentRound.toString());
+    // Redirect to next round page, e.g. round2.html, round3.html...
+    const nextRoundPage = `round${currentRound}.html`;
 
-  // Redirect to next round page, e.g. round2.html, round3.html...
-  const nextRoundPage = `round${currentRound}.html`;
-
-  // Optional: If round 6 or above, go to leaderboard or final page
-  if (currentRound > 5) {
-    window.location.href = 'leaderboard.html';
-  } else {
-    window.location.href = nextRoundPage;
-  }
-});
-
-// Also, make sure to update the callbackFinished to just play winSound normally:
-theWheel.animation.callbackFinished = function (indicatedSegment) {
-  document.getElementById('forfeitResult').textContent = 'Forfeit: ' + indicatedSegment.text;
-  document.getElementById('nextRoundBtn').style.display = 'inline-block';
-
-  // Play win sound audibly after spin finishes
-  winSound.currentTime = 0;
-  winSound.play();
-};
+    // Optional: If round 6 or above, go to leaderboard or final page
+    if (currentRound > 5) {
+      window.location.href = 'leaderboard.html';
+    } else {
+      window.location.href = nextRoundPage;
+    }
+  });
 </script>
+
 
 </body>
 </html>
