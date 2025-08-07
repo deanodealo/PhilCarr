@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Leaderboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .leaderboard-container {
+      width: 350px;
+      background: #222;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow:
+        0 4px 6px rgba(0,0,0,0.6),
+        inset 0 0 10px #00bcd4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .leaderboard-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 30px;
+      color: #00bcd4;
+      text-shadow: 0 0 8px #00bcd4;
+    }
+
+    .leaderboard-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .leaderboard-item {
+      background: linear-gradient(145deg, #272727, #1c1c1c);
+      border-radius: 12px;
+      box-shadow:
+        3px 3px 6px #1a1a1a,
+        -3px -3px 6px #323232;
+      padding: 15px 20px;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: default;
+      user-select: none;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .leaderboard-item:hover {
+      box-shadow:
+        6px 6px 12px #121212,
+        -6px -6px 12px #404040;
+    }
+
+    .score {
+      background: #00bcd4;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 700;
+      color: #121212;
+      min-width: 45px;
+      text-align: center;
+      box-shadow: 0 0 8px #00bcd4;
+    }
+
+    /* Styled Spin the Wheel button */
+    #spinWheelBtn {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #00bcd4;
+      background: none;
+      border: 2px solid #00bcd4;
+      border-radius: 0 0 16px 16px;
+      padding: 15px 0;
+      width: 100%;
+      cursor: pointer;
+      text-align: center;
+      user-select: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      box-shadow:
+        3px 3px 6px #1a1a1a,
+        -3px -3px 6px #323232;
+    }
+
+    #spinWheelBtn:hover,
+    #spinWheelBtn:focus {
+      background-color: #00bcd4;
+      color: #121212;
+      outline: none;
+      box-shadow:
+        inset 3px 3px 6px #1a1a1a,
+        inset -3px -3px 6px #323232;
+    }
+  </style>
+</head>
+<body>
+  <div class="leaderboard-container">
+    <div class="leaderboard-title">Leaderboard</div>
+    <div class="leaderboard-list" id="leaderboardList">
+      <!-- Player score buttons go here -->
+    </div>
+    <button id="spinWheelBtn" type="button">Spin the Wheel!</button>
+  </div>
+
+  <script>
+    // Example players data (replace with your real data)
+    const players = [
+      { name: 'Phil', score: 4 },
+      { name: 'John', score: 3 },
+      { name: 'Sally', score: 2 },
+      { name: 'Mary', score: 1 }
+    ];
+
+    const leaderboardList = document.getElementById('leaderboardList');
+
+    // Sort descending by score
+    players.sort((a, b) => b.score - a.score);
+
+    // Render leaderboard items
+    players.forEach(player => {
+      const item = document.createElement('div');
+      item.className = 'leaderboard-item';
+      item.innerHTML = `
+        <span class="player-name">${player.name}</span>
+        <span class="score">${player.score}</span>
+      `;
+      leaderboardList.appendChild(item);
+    });
+
+    // Redirect on Spin the Wheel button click
+    document.getElementById('spinWheelBtn').addEventListener('click', () => {
+      window.location.href = 'wheel.html'; // Adjust path if needed
+    });
+  </script>
+</body>
+</html>

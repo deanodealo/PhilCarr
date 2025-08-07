@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phil Carr Quiz</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="overlay">
+  <button id="letsPlayBtn">Let's Play!</button>
+</div>
+
+<audio id="welcomeSound" src="sound3.wav" preload="auto"></audio>
+
+
+  <div class="container">
+    <img src="images/phil1.jpg" alt="Phil Carr Logo" class="logo" />
+    <h1>Welcome to Phil Carr!</h1>
+
+    <div class="rules">
+      <strong>How to Play:</strong><br />
+      Five Rounds. Five questions per round<br />
+      Bottom after each round spins the Wheel<br />
+      Each player has 1x Phil Carr<br /><br />
+      Good luck!
+    </div>
+
+    <input type="text" id="playerName" placeholder="Enter Your Name" />
+    <button id="continueBtn">Continue</button>
+
+    <div class="music-btn">
+      🎵 Music Coming Soon!
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('continueBtn').addEventListener('click', function () {
+    const playerName = document.getElementById('playerName').value.trim();
+
+    if (playerName === '') {
+      alert('Please enter your name!');
+      return;
+    }
+
+    localStorage.setItem('playerName', playerName);
+    window.location.href = 'round1.html';
+  });
+
+  window.addEventListener('load', () => {
+    const overlay = document.getElementById('overlay');
+    const letsPlayBtn = document.getElementById('letsPlayBtn');
+    const welcomeSound = document.getElementById('welcomeSound');
+
+    letsPlayBtn.addEventListener('click', () => {
+      // Play sound
+      welcomeSound.currentTime = 0;
+      welcomeSound.play();
+
+      // Fade out overlay
+      overlay.style.transition = 'opacity 0.5s ease';
+      overlay.style.opacity = '0';
+
+      // After fade, remove overlay from DOM
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 500);
+    });
+  });
+</script>
+
+
+</body>
+</html>
+
+

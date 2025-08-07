@@ -1,0 +1,184 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #248cfb, #7116f9);
+  color: #fff;
+  text-align: center;
+  min-height: 100vh;
+}
+
+
+.container {
+  width: 90%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding-top: 3rem; /* <-- Add space at the top */
+}
+
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.rules {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+input[type="text"], button {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+input[type="text"] {
+  margin-bottom: 1.5rem;
+}
+
+button {
+  background-color: #10b981;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background-color: #059669;
+}
+
+.music-btn {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+.logo {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;   /* crops nicely */
+  border-radius: 50%;  /* makes it circle */
+  animation: spin360 4s linear infinite; /* if you want it spinning */
+  display: block;
+  margin: 0 auto 1rem auto;
+}
+
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+h1 {
+  animation: slideInRight 0.8s ease forwards;
+}
+@keyframes spin360 {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.logo {
+  animation: spin360 4s linear infinite;
+}
+
+
+/* === Round Page Styles === */
+
+.round-container {
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.round-title {
+  font-size: 2rem;
+  margin-bottom: 40px;
+}
+
+.answer-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+button.answer {
+  padding: 20px;
+  font-size: 1.5rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(to bottom, #00bcd4, #0097a7);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px #007c91;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+button.answer:hover {
+  background: linear-gradient(to bottom, #00d6f0, #00a3c1);
+  box-shadow: 0 4px #006b7d;
+  top: -1px;
+}
+
+button.answer:active {
+  box-shadow: 0 2px #005b6d;
+  top: 2px;
+}
+
+#continueBtn {
+  margin-top: 40px;
+  padding: 15px 30px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 10px;
+  background-color: #3cd94f;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+#continueBtn:hover {
+  background-color: #512da8;
+}
+#overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#letsPlayBtn {
+  font-size: 3rem;
+  padding: 1rem 3rem;
+  cursor: pointer;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(45deg, #ff8c00, #ff6600);
+  color: white;
+  box-shadow: 0 6px #b34700;
+  transition: transform 0.2s ease;
+}
+
+#letsPlayBtn:hover {
+  transform: scale(1.05);
+}
