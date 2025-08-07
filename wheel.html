@@ -133,37 +133,64 @@ canvas {
     }
   });
 
-  document.getElementById('spinBtn').addEventListener('click', () => {
-    // Resume AudioContext on user interaction to unlock sound on mobile
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
+document.getElementById('spinBtn').addEventListener('click', () => {
+  // Resume AudioContext on user interaction to unlock sound on mobile
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 
-    theWheel.stopAnimation(false);
-    theWheel.rotationAngle = 0;
-    spinSound.play();
-    theWheel.startAnimation();
-    document.getElementById('forfeitResult').textContent = '';
-  });
+  // Play spin sound immediately
+  spinSound.currentTime = 0;
+  spinSound.play();
 
-  document.getElementById('goToWheelBtn').addEventListener('click', () => {
-    window.location.href = 'wheel.html';
-  });
+  // Play winSound muted and paused immediately to unlock playback on mobile
+  winSound.muted = true;
+  winSound.currentTime = 0;
+  const playPromise = winSound.play();
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      winSound.pause();
+      winSound.muted = false;
+    }).catch(() => {
+      // Ignore errors here
+      winSound.muted = false;
+    });
+  }
 
-  document.getElementById('nextRoundBtn').addEventListener('click', () => {
-    currentRound++;
-    localStorage.setItem('currentRound', currentRound.toString());
+  theWheel.stopAnimation(false);
+  theWheel.rotationAngle = 0;
+  theWheel.startAnimation();
+  document.getElementById('forfeitResult').textContent = '';
+});
 
-    // Redirect to next round page, e.g. round2.html, round3.html...
-    const nextRoundPage = `round${currentRound}.html`;
+document.getElementById('goToWheelBtn').addEventListener('click', () => {
+  window.location.href = 'wheel.html';
+});
 
-    // Optional: If round 6 or above, go to leaderboard or final page
-    if (currentRound > 5) {
-      window.location.href = 'leaderboard.html';
-    } else {
-      window.location.href = nextRoundPage;
-    }
-  });
+document.getElementById('nextRoundBtn').addEventListener('click', () => {
+  currentRound++;
+  localStorage.setItem('currentRound', currentRound.toString());
+
+  // Redirect to next round page, e.g. round2.html, round3.html...
+  const nextRoundPage = `round${currentRound}.html`;
+
+  // Optional: If round 6 or above, go to leaderboard or final page
+  if (currentRound > 5) {
+    window.location.href = 'leaderboard.html';
+  } else {
+    window.location.href = nextRoundPage;
+  }
+});
+
+// Also, make sure to update the callbackFinished to just play winSound normally:
+theWheel.animation.callbackFinished = function (indicatedSegment) {
+  document.getElementById('forfeitResult').textContent = 'Forfeit: ' + indicatedSegment.text;
+  document.getElementById('nextRoundBtn').style.display = 'inline-block';
+
+  // Play win sound audibly after spin finishes
+  winSound.currentTime = 0;
+  winSound.play();
+};
 </script>
 
 </body>
