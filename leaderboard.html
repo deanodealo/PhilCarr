@@ -168,6 +168,7 @@
   const spinStatus = document.getElementById('spinStatus');
 
   const currentRound = parseInt(localStorage.getItem('currentRound')) || 1;
+  const playerName = localStorage.getItem('playerName') || '';
   leaderboardTitle.textContent = `Leaderboard - Round ${currentRound}`;
 
   const playersCol = collection(db, 'players');
@@ -177,6 +178,8 @@
     leaderboardList.innerHTML = '';
 
     let allFinished = true;
+    let lowestScore = Infinity;
+    let lastPlacePlayers = [];
 
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -186,6 +189,14 @@
 
       if (finishedRound < currentRound) {
         allFinished = false;
+      }
+
+      // Track last place players (lowest score)
+      if (score < lowestScore) {
+        lowestScore = score;
+        lastPlacePlayers = [name];
+      } else if (score === lowestScore) {
+        lastPlacePlayers.push(name);
       }
 
       const item = document.createElement('div');
@@ -199,8 +210,15 @@
 
     if (allFinished) {
       spinStatus.textContent = 'All players finished. Ready to spin the wheel!';
-      spinWheelBtn.disabled = false;
-      spinWheelBtn.textContent = 'Last place - Click to Spin the Wheel!';
+
+      // Enable spin button only if current player is last place
+      if (lastPlacePlayers.includes(playerName)) {
+        spinWheelBtn.disabled = false;
+        spinWheelBtn.textContent = 'You are last place - Click to Spin the Wheel!';
+      } else {
+        spinWheelBtn.disabled = true;
+        spinWheelBtn.textContent = 'Waiting for last place player to spin...';
+      }
     } else {
       spinStatus.textContent = `Waiting for all players to finish round ${currentRound}...`;
       spinWheelBtn.disabled = true;
@@ -220,6 +238,11 @@
       spinStatus.textContent = 'Wheel is spinning...';
       spinWheelBtn.disabled = true;
       spinWheelBtn.textContent = 'Wheel spinning, please wait...';
+
+      // Redirect all users to wheel page to watch spin if not already there
+      if (!window.location.href.includes('wheel.html')) {
+        window.location.href = `wheel.html?round=${currentRound}`;
+      }
     } else if (forfeit) {
       spinStatus.textContent = `Forfeit: ${forfeit}`;
       spinWheelBtn.disabled = true;
@@ -243,6 +266,7 @@
     }
   });
 </script>
+
 
 
 </body>

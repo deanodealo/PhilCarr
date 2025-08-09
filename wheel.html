@@ -107,7 +107,7 @@
   <audio id="spinSound" src="sound1.wav" preload="auto"></audio>
   <audio id="winSound" src="sound2.wav" preload="auto"></audio>
 
-  <script type="module">
+ <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import {
     getFirestore,
@@ -116,7 +116,6 @@
     onSnapshot
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-  // Firebase config (use your actual config here)
   const firebaseConfig = {
     apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
     authDomain: "philcarr-20ac0.firebaseapp.com",
@@ -127,16 +126,16 @@
     measurementId: "G-XRCH682RNE"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Other variables from your code:
   const urlParams = new URLSearchParams(window.location.search);
   let currentRound = parseInt(urlParams.get('round')) || parseInt(localStorage.getItem('currentRound')) || 1;
-  if (currentRound > 5) currentRound = 5; // max 5 rounds
+  if (currentRound > 5) currentRound = 5;
 
   localStorage.setItem('currentRound', currentRound.toString());
+
+  const playerName = localStorage.getItem('playerName') || '';
 
   document.getElementById('roundNumberDisplay').textContent = currentRound;
 
@@ -146,38 +145,49 @@
   const forfeitDiv = document.getElementById('forfeitResult');
   const nextRoundBtn = document.getElementById('nextRoundBtn');
 
-  // Firestore doc to track wheel status for current round
   const statusDocRef = doc(db, "wheelStatus", `round${currentRound}`);
+  const playersCol = collection(db, 'players');
 
-  // Listen for realtime updates to sync UI for all players
+  let isLastPlace = false;
+
+  // Determine if current player is last place
+  async function checkIfLastPlace() {
+    const playersSnapshot = await getDocs(query(playersCol, orderBy('score', 'asc')));
+    if (playersSnapshot.empty) {
+      isLastPlace = false;
+      return;
+    }
+    const lowestScore = playersSnapshot.docs[0].data().score ?? 0;
+    isLastPlace = playersSnapshot.docs.some(doc => doc.id === playerName && (doc.data().score ?? 0) === lowestScore);
+  }
+
+  checkIfLastPlace();
+
   onSnapshot(statusDocRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      if (data.spinning) {
-        // Someone is spinning now
-        spinBtn.disabled = true;
-        forfeitDiv.textContent = "Wheel is spinning...";
-        nextRoundBtn.style.display = 'none';
-      } else {
-        // Spin finished
-        spinBtn.disabled = false;
-        if (data.forfeit) {
-          forfeitDiv.textContent = "Forfeit: " + data.forfeit;
-          nextRoundBtn.style.display = 'inline-block';
-        } else {
-          forfeitDiv.textContent = '';
-          nextRoundBtn.style.display = 'none';
-        }
-      }
-    } else {
-      // No spin in progress or result yet
-      spinBtn.disabled = false;
+    if (!docSnap.exists()) {
+      spinBtn.disabled = !isLastPlace;
       forfeitDiv.textContent = '';
       nextRoundBtn.style.display = 'none';
+      return;
+    }
+
+    const data = docSnap.data();
+    if (data.spinning) {
+      spinBtn.disabled = true;
+      forfeitDiv.textContent = "Wheel is spinning...";
+      nextRoundBtn.style.display = 'none';
+    } else {
+      spinBtn.disabled = !isLastPlace;
+      if (data.forfeit) {
+        forfeitDiv.textContent = "Forfeit: " + data.forfeit;
+        nextRoundBtn.style.display = 'inline-block';
+      } else {
+        forfeitDiv.textContent = '';
+        nextRoundBtn.style.display = 'none';
+      }
     }
   });
 
-  // Wheel setup (your existing code, unchanged)
   const theWheel = new Winwheel({
     canvasId: 'wheelCanvas',
     numSegments: 6,
@@ -196,13 +206,11 @@
       duration: 5,
       spins: 8,
       callbackFinished: async function (indicatedSegment) {
-        // Update Firestore: spinning false + save forfeit text
         await setDoc(statusDocRef, {
           spinning: false,
           forfeit: indicatedSegment.text
         });
 
-        // Play sounds and update UI - your existing code
         spinSound.pause();
         spinSound.currentTime = 0;
         winSound.currentTime = 0;
@@ -212,7 +220,6 @@
     }
   });
 
-  // Unlock audio on first user interaction (your existing code)
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   document.addEventListener('click', function unlockAudio() {
     audioCtx.resume();
@@ -228,13 +235,13 @@
   });
 
   spinBtn.addEventListener('click', async () => {
-    // Write spin in progress to Firestore
+    if (!isLastPlace) return;
+
     await setDoc(statusDocRef, {
       spinning: true,
       forfeit: null
     });
 
-    // Your existing spin start code:
     spinBtn.disabled = true;
     forfeitDiv.textContent = '';
     nextRoundBtn.style.display = 'none';
@@ -260,6 +267,7 @@
     }
   });
 </script>
+
 
 
 </body>
