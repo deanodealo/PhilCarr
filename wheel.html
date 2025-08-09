@@ -107,13 +107,17 @@
   <audio id="spinSound" src="sound1.wav" preload="auto"></audio>
   <audio id="winSound" src="sound2.wav" preload="auto"></audio>
 
- <script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import {
     getFirestore,
     doc,
     setDoc,
-    onSnapshot
+    onSnapshot,
+    collection,    // ✅ added
+    getDocs,       // ✅ added
+    query,         // ✅ added
+    orderBy        // ✅ added
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -136,7 +140,6 @@
   localStorage.setItem('currentRound', currentRound.toString());
 
   const playerName = localStorage.getItem('playerName') || '';
-
   document.getElementById('roundNumberDisplay').textContent = currentRound;
 
   const spinSound = document.getElementById('spinSound');
@@ -150,7 +153,7 @@
 
   let isLastPlace = false;
 
-  // Determine if current player is last place
+  // ✅ Determine if current player is last place
   async function checkIfLastPlace() {
     const playersSnapshot = await getDocs(query(playersCol, orderBy('score', 'asc')));
     if (playersSnapshot.empty) {
@@ -158,10 +161,10 @@
       return;
     }
     const lowestScore = playersSnapshot.docs[0].data().score ?? 0;
-    isLastPlace = playersSnapshot.docs.some(doc => doc.id === playerName && (doc.data().score ?? 0) === lowestScore);
+    isLastPlace = playersSnapshot.docs.some(docSnap => docSnap.id === playerName && (docSnap.data().score ?? 0) === lowestScore);
   }
 
-  checkIfLastPlace();
+  await checkIfLastPlace();
 
   onSnapshot(statusDocRef, (docSnap) => {
     if (!docSnap.exists()) {
@@ -220,6 +223,7 @@
     }
   });
 
+  // Unlock audio on first click
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   document.addEventListener('click', function unlockAudio() {
     audioCtx.resume();
@@ -267,6 +271,7 @@
     }
   });
 </script>
+
 
 
 
