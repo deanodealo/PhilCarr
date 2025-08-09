@@ -6,8 +6,9 @@
   <title>Leaderboard</title>
   <link rel="stylesheet" href="style.css" />
   <style>
+    /* your existing styles here ... */
     body {
-      background: #121212;
+      background: #c6b9b9;
       color: #eee;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
@@ -16,7 +17,6 @@
       height: 100vh;
       margin: 0;
     }
-
     .leaderboard-container {
       width: 350px;
       background: #222;
@@ -29,15 +29,14 @@
       flex-direction: column;
       align-items: center;
     }
-
     .leaderboard-title {
       font-size: 2rem;
       font-weight: bold;
       margin-bottom: 30px;
       color: #00bcd4;
       text-shadow: 0 0 8px #00bcd4;
+      user-select: none;
     }
-
     .leaderboard-list {
       width: 100%;
       display: flex;
@@ -45,7 +44,6 @@
       gap: 15px;
       margin-bottom: 30px;
     }
-
     .leaderboard-item {
       background: linear-gradient(145deg, #272727, #1c1c1c);
       border-radius: 12px;
@@ -63,13 +61,11 @@
       user-select: none;
       transition: box-shadow 0.3s ease;
     }
-
     .leaderboard-item:hover {
       box-shadow:
         6px 6px 12px #121212,
         -6px -6px 12px #404040;
     }
-
     .score {
       background: #00bcd4;
       padding: 6px 14px;
@@ -80,44 +76,47 @@
       text-align: center;
       box-shadow: 0 0 8px #00bcd4;
     }
+#spinWheelBtn {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #121212;
+  background: linear-gradient(145deg, #00bcd4, #0097a7);
+  border: 2px solid #008c9e;
+  border-radius: 30px;
+  padding: 15px 0;
+  width: 100%;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+  box-shadow:
+    4px 4px 10px #006870,
+    -4px -4px 10px #00d4db;
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
 
-    /* Styled Spin the Wheel button */
-    #spinWheelBtn {
-      font-size: 1.8rem;
-      font-weight: 900;
-      color: #00bcd4;
-      background: none;
-      border: 2px solid #00bcd4;
-      border-radius: 0 0 16px 16px;
-      padding: 15px 0;
-      width: 100%;
-      cursor: pointer;
-      text-align: center;
-      user-select: none;
-      transition: background-color 0.3s ease, color 0.3s ease;
-      box-shadow:
-        3px 3px 6px #1a1a1a,
-        -3px -3px 6px #323232;
-    }
+#spinWheelBtn:hover,
+#spinWheelBtn:focus {
+  background: linear-gradient(145deg, #0097a7, #00bcd4);
+  color: #fff;
+  outline: none;
+  box-shadow:
+    inset 2px 2px 6px #006870,
+    inset -2px -2px 6px #00d4db;
+  transform: scale(1.05);
+}
 
-    #spinWheelBtn:hover,
-    #spinWheelBtn:focus {
-      background-color: #00bcd4;
-      color: #121212;
-      outline: none;
-      box-shadow:
-        inset 3px 3px 6px #1a1a1a,
-        inset -3px -3px 6px #323232;
-    }
   </style>
 </head>
 <body>
   <div class="leaderboard-container">
-    <div class="leaderboard-title">Leaderboard</div>
+    <div class="leaderboard-title" id="leaderboardTitle">Leaderboard</div>
     <div class="leaderboard-list" id="leaderboardList">
-      <!-- Player score buttons go here -->
+      <!-- Player score items go here -->
     </div>
-    <button id="spinWheelBtn" type="button">Spin the Wheel!</button>
+    <button id="spinWheelBtn" type="button">Last place - Spin the Wheel!</button>
+
+    <!-- Add your spin sound audio here -->
+    <audio id="spinWheelSound" src="sound4.mp3" preload="auto"></audio>
   </div>
 
   <!-- Firebase SDK -->
@@ -125,7 +124,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // Your Firebase config (replace with your own)
     const firebaseConfig = {
       apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
       authDomain: "philcarr-20ac0.firebaseapp.com",
@@ -136,23 +134,25 @@
       measurementId: "G-XRCH682RNE"
     };
 
-    // Initialize Firebase and Firestore
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
     const leaderboardList = document.getElementById('leaderboardList');
+    const leaderboardTitle = document.getElementById('leaderboardTitle');
+    const spinWheelBtn = document.getElementById('spinWheelBtn');
+    const spinWheelSound = document.getElementById('spinWheelSound');
+
+    const currentRound = parseInt(localStorage.getItem('currentRound')) || 1;
+    leaderboardTitle.textContent = `Leaderboard - Round ${currentRound}`;
 
     async function loadLeaderboard() {
       try {
-        // Query players collection, order by score descending
         const playersCol = collection(db, 'players');
         const q = query(playersCol, orderBy('score', 'desc'));
         const querySnapshot = await getDocs(q);
 
-        // Clear existing list
         leaderboardList.innerHTML = '';
 
-        // Add each player to the leaderboard
         querySnapshot.forEach(doc => {
           const data = doc.data();
           const name = doc.id;
@@ -174,10 +174,22 @@
 
     loadLeaderboard();
 
-    // Redirect on Spin the Wheel button click
-    document.getElementById('spinWheelBtn').addEventListener('click', () => {
-      window.location.href = 'wheel.html'; // Adjust path if needed
-    });
+spinWheelBtn.addEventListener('click', () => {
+  spinWheelSound.currentTime = 0;
+  
+  // Play sound and after it ends redirect
+  spinWheelSound.play().then(() => {
+    spinWheelSound.onended = () => {
+      window.location.href = `wheel.html?round=${currentRound}`;
+    };
+  }).catch((e) => {
+    console.error('Failed to play sound:', e);
+    // Fallback redirect if sound can't play
+    window.location.href = `wheel.html?round=${currentRound}`;
+  });
+});
+
+
   </script>
 </body>
 </html>

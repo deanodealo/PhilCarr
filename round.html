@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz Round</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="round-container">
+    <h1 id="roundTitle">Round</h1>
+    <h3 id="questionNumber">Question</h3>
+    <div id="questionArea">
+      <div class="answer-buttons">
+        <button class="answer">Answer A</button>
+        <button class="answer">Answer B</button>
+        <button class="answer">Answer C</button>
+        <button class="answer">Answer D</button>
+      </div>
+    </div>
+    <button id="continueBtn" style="display:none;">Continue</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { increment } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+      authDomain: "philcarr-20ac0.firebaseapp.com",
+      projectId: "philcarr-20ac0",
+      storageBucket: "philcarr-20ac0.firebasestorage.app",
+      messagingSenderId: "770728636073",
+      appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+      measurementId: "G-XRCH682RNE"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Get round from localStorage or default 1
+    const roundNumber = parseInt(localStorage.getItem('currentRound')) || 1;
+
+    // Player info from localStorage
+    const playerName = localStorage.getItem('playerName') || 'Unknown Player';
+
+    const roundTitle = document.getElementById('roundTitle');
+    const questionNumber = document.getElementById('questionNumber');
+    const answerButtons = document.querySelectorAll('.answer');
+    const continueBtn = document.getElementById('continueBtn');
+
+    let questions = [];
+    let currentQuestion = 0;
+    let score = 0;
+    let answerSelected = false;
+
+    roundTitle.textContent = `Round ${roundNumber}`;
+
+    // Load questions from Firestore for the current round
+    async function loadQuestions() {
+      const roundDoc = doc(db, 'rounds', `round${roundNumber}`);
+      const snap = await getDoc(roundDoc);
+
+      if (snap.exists()) {
+        questions = snap.data().questions;
+        if (!Array.isArray(questions) || questions.length === 0) {
+          alert('No questions found for this round.');
+          return;
+        }
+        setupAnswerListeners();
+        loadQuestion();
+      } else {
+        alert('Round data not found.');
+      }
+    }
+
+    function loadQuestion() {
+      const q = questions[currentQuestion];
+      questionNumber.textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+      answerButtons.forEach((btn, i) => {
+        btn.textContent = q.answers[i] || '';
+        btn.disabled = false;
+        btn.style.backgroundColor = '';
+      });
+      continueBtn.style.display = 'none';
+      answerSelected = false;
+    }
+
+    function setupAnswerListeners() {
+      answerButtons.forEach((btn, i) => {
+        btn.addEventListener('click', () => {
+          if (answerSelected) return;
+
+          answerSelected = true;
+          const q = questions[currentQuestion];
+
+          if (i === q.correct) {
+            btn.style.backgroundColor = '#4caf50'; // green
+            score++;
+          } else {
+            btn.style.backgroundColor = '#f44336'; // red
+            answerButtons[q.correct].style.backgroundColor = '#4caf50'; // correct answer
+          }
+
+          answerButtons.forEach(b => b.disabled = true);
+          continueBtn.style.display = 'inline-block';
+        });
+      });
+    }
+
+    continueBtn.addEventListener('click', async () => {
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        loadQuestion();
+      } else {
+        // Save score and round to Firestore player doc (create if doesn't exist)
+        try {
+          const playerDoc = doc(db, 'players', playerName);
+          await updateDoc(playerDoc, {
+            score: increment(score),
+            currentRound: roundNumber
+          });
+
+          window.location.href = `leaderboard.html?round=${roundNumber}`;
+        } catch (e) {
+          console.error('Error saving score:', e);
+          alert('Failed to save score. Please try again.');
+        }
+      }
+    });
+
+    loadQuestions();
+  </script>
+</body>
+</html>

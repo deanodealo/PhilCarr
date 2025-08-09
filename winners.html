@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz Winners</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+      padding: 20px;
+    }
+    .winners-container {
+      background: #222;
+      border-radius: 16px;
+      padding: 40px 30px;
+      max-width: 400px;
+      box-shadow:
+        0 4px 6px rgba(0,0,0,0.6),
+        inset 0 0 10px #00bcd4;
+    }
+    h1 {
+      font-size: 2.8rem;
+      margin-bottom: 20px;
+      color: #00bcd4;
+      text-shadow: 0 0 10px #00bcd4;
+    }
+    .winner-name {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 10px 0;
+    }
+    .winner-score {
+      font-size: 1.5rem;
+      color: #00bcd4;
+      margin-bottom: 30px;
+    }
+    #restartBtn {
+      background: #00bcd4;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #121212;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 15px #00bcd4;
+      transition: background-color 0.3s ease;
+    }
+    #restartBtn:hover {
+      background: #0097a7;
+    }
+  </style>
+</head>
+<body>
+  <div class="winners-container">
+    <h1>🎉 Congratulations! 🎉</h1>
+    <div id="winnerList">Loading winners...</div>
+    <button id="restartBtn">Restart Quiz</button>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+      authDomain: "philcarr-20ac0.firebaseapp.com",
+      projectId: "philcarr-20ac0",
+      storageBucket: "philcarr-20ac0.firebasestorage.app",
+      messagingSenderId: "770728636073",
+      appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+      measurementId: "G-XRCH682RNE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const winnerListDiv = document.getElementById('winnerList');
+
+    async function loadWinners() {
+      try {
+        const playersCol = collection(db, 'players');
+        const snapshot = await getDocs(playersCol);
+
+        if (snapshot.empty) {
+          winnerListDiv.textContent = "No players found.";
+          return;
+        }
+
+        // Gather players with their scores
+        const players = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (typeof data.score === 'number') {
+            players.push({ name: doc.id, score: data.score });
+          }
+        });
+
+        if (players.length === 0) {
+          winnerListDiv.textContent = "No scores available.";
+          return;
+        }
+
+        // Find highest score
+        const highestScore = Math.max(...players.map(p => p.score));
+
+        // Get all players with the highest score (in case of ties)
+        const winners = players.filter(p => p.score === highestScore);
+
+        // Display winners
+        winnerListDiv.innerHTML = `
+          <div>🏆 Winner${winners.length > 1 ? 's' : ''}:</div>
+          ${winners.map(w => `
+            <div class="winner-name">${w.name}</div>
+            <div class="winner-score">Score: ${w.score}</div>
+          `).join('')}
+        `;
+      } catch (error) {
+        console.error('Error loading winners:', error);
+        winnerListDiv.textContent = "Failed to load winners.";
+      }
+    }
+
+    loadWinners();
+
+    document.getElementById('restartBtn').addEventListener('click', () => {
+      window.location.href = 'round.html';
+    });
+  </script>
+</body>
+</html>

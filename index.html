@@ -30,9 +30,6 @@
     <input type="text" id="playerName" placeholder="Enter Your Name" />
     <button id="continueBtn">Continue</button>
 
-    <div class="music-btn">
-      🎵 Music Coming Soon!
-    </div>
   </div>
 
 <script type="module">
@@ -72,7 +69,7 @@
       });
 
       localStorage.setItem('playerName', playerName);
-      window.location.href = 'round1.html';
+      window.location.href = 'round.html';
 
     } catch (error) {
       alert("Error saving player: " + error.message);

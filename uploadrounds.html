@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head><title>Upload Rounds to Firestore</title></head>
+<body>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+    authDomain: "philcarr-20ac0.firebaseapp.com",
+    projectId: "philcarr-20ac0",
+    storageBucket: "philcarr-20ac0.firebasestorage.app",
+    messagingSenderId: "770728636073",
+    appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+    measurementId: "G-XRCH682RNE"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Your questions here - extend for round2, round3 etc as needed
+  const roundsData = {
+    round1: {
+      questions: [
+        { question: "Which Artist has Phil been to see most Live?", answers: ["The Twang", "The Streets", "Phil Collins", "Oasis"], correct: 1 },
+        { question: "What is Phils Favorite Color?", answers: ["Red", "White", "Blue", "Green"], correct: 2 },
+        { question: "In which sport is the Davis Cup awarded?", answers: ["Tennis", "Golf", "Rugby", "Cricket"], correct: 0 },
+        { question: "What country hosts the Tour de France?", answers: ["Italy", "Germany", "France", "Spain"], correct: 2 },
+        { question: "Which sport uses a puck?", answers: ["Hockey", "Basketball", "Baseball", "Volleyball"], correct: 0 }
+      ]
+    },
+
+round2: {
+      questions: [
+        { question: "Who won the FIFA World Cup in 2018?", answers: ["Germany", "France", "Brazil", "Argentina"], correct: 1 },
+        { question: "Phil was once mugeed, but for what?", answers: ["His Pants", "His Shoes", "His Socks", "His Dignity"], correct: 2 },
+        { question: "In which sport is the Davis Cup awarded?", answers: ["Tennis", "Golf", "Rugby", "Cricket"], correct: 0 },
+        { question: "What country hosts the Tour de France?", answers: ["Italy", "Germany", "France", "Spain"], correct: 2 },
+        { question: "Which sport uses a puck?", answers: ["Hockey", "Basketball", "Baseball", "Volleyball"], correct: 0 }
+      ]
+    },
+
+    round3: {
+      questions: [
+        { question: "Which of these is one of Phils Favorite Films?", answers: ["Robocop", "Notting Hill", "Sliding Doors", "Pretty Woman"], correct: 2 },
+        { question: "How many players in a basketball team?", answers: ["5", "6", "7", "11"], correct: 0 },
+        { question: "In which sport is the Davis Cup awarded?", answers: ["Tennis", "Golf", "Rugby", "Cricket"], correct: 0 },
+        { question: "What country hosts the Tour de France?", answers: ["Italy", "Germany", "France", "Spain"], correct: 2 },
+        { question: "Which sport uses a puck?", answers: ["Hockey", "Basketball", "Baseball", "Volleyball"], correct: 0 }
+      ]
+    },
+
+    round4: {
+      questions: [
+        { question: "Who won the FIFA World Cup in 2018?", answers: ["Germany", "France", "Brazil", "Argentina"], correct: 1 },
+        { question: "Whats Phils House Number?", answers: ["9", "19", "29", "17"], correct: 1 },
+        { question: "In which sport is the Davis Cup awarded?", answers: ["Tennis", "Golf", "Rugby", "Cricket"], correct: 0 },
+        { question: "What country hosts the Tour de France?", answers: ["Italy", "Germany", "France", "Spain"], correct: 2 },
+        { question: "Which sport uses a puck?", answers: ["Hockey", "Basketball", "Baseball", "Volleyball"], correct: 0 }
+      ]
+    },
+
+    round5: {
+      questions: [
+        { question: "Who was Phils Teenage Crush?", answers: ["Sporty Spice", "Ginger Spice", "Scary Spice", "Baby Spice"], correct: 0 },
+        { question: "Whats for Tea every Monday Night?", answers: ["Beans on Toast", "Lasagne and Chips", "Chicken Salad", "Jacket Potato"], correct: 3 },
+        { question: "What is Phils main OCD issue?", answers: ["Dirty Fingernails", "Odd Socks", "Double Locking Doors", "Cleaning his Trainers"], correct: 1 },
+        { question: "What is Phils Favorite band?", answers: ["The Streets", "Queen", "Simply Red", "The Twang"], correct: 1 },
+        { question: "What did Phil sell at Junior School?", answers: ["Sweets", "Conkers", "Toast", "Drugs"], correct: 2 }
+      ]
+    },
+
+  };
+
+  async function uploadRounds() {
+    for (const [roundId, data] of Object.entries(roundsData)) {
+      await setDoc(doc(db, "rounds", roundId), data);
+      console.log(`Uploaded ${roundId}`);
+    }
+    alert('Upload complete!');
+  }
+
+  uploadRounds();
+</script>
+</body>
+</html>
