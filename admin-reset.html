@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin Reset</title>
+<style>
+  body {
+    font-family: Verdana, sans-serif;
+    padding: 20px;
+    background: #222;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    justify-content: center;
+  }
+  button {
+    font-size: 1.2rem;
+    padding: 10px 20px;
+    background: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button:disabled {
+    background: #555;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+
+<h1>Admin Reset Player Data</h1>
+<button id="resetBtn">Reset All Player Data</button>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+    authDomain: "philcarr-20ac0.firebaseapp.com",
+    projectId: "philcarr-20ac0",
+    storageBucket: "philcarr-20ac0.firebasestorage.app",
+    messagingSenderId: "770728636073",
+    appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+    measurementId: "G-XRCH682RNE"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const resetBtn = document.getElementById('resetBtn');
+
+  resetBtn.addEventListener('click', async () => {
+    const password = prompt("Enter admin password to reset data:");
+
+    // Simple password check - change 'YourSecretPassword'!
+    if (password !== 'deano') {
+      alert('Incorrect password');
+      return;
+    }
+
+    if (!confirm("Are you sure? This will delete ALL player data!")) return;
+
+    resetBtn.disabled = true;
+    resetBtn.textContent = "Resetting...";
+
+    try {
+      const playersCol = collection(db, 'players');
+      const snapshot = await getDocs(playersCol);
+      const batch = writeBatch(db);
+
+      snapshot.forEach(docSnap => {
+        batch.delete(doc(db, 'players', docSnap.id));
+      });
+
+      await batch.commit();
+
+      alert('All player data reset successfully!');
+      resetBtn.textContent = "Reset Complete";
+    } catch (error) {
+      console.error('Reset error:', error);
+      alert('Error during reset, see console');
+      resetBtn.disabled = false;
+      resetBtn.textContent = "Reset All Player Data";
+    }
+  });
+</script>
+</body>
+</html>

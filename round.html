@@ -117,17 +117,19 @@
       } else {
         // Save score and round to Firestore player doc (create if doesn't exist)
         try {
-          const playerDoc = doc(db, 'players', playerName);
-          await updateDoc(playerDoc, {
-            score: increment(score),
-            currentRound: roundNumber
-          });
+  const playerDoc = doc(db, 'players', playerName);
+  await updateDoc(playerDoc, {
+    score: increment(score),
+    currentRound: roundNumber,
+    finishedRound: roundNumber   // <--- mark round finished here
+  });
 
-          window.location.href = `leaderboard.html?round=${roundNumber}`;
-        } catch (e) {
-          console.error('Error saving score:', e);
-          alert('Failed to save score. Please try again.');
-        }
+  window.location.href = `leaderboard.html?round=${roundNumber}`;
+} catch (e) {
+  console.error('Error saving score:', e);
+  alert('Failed to save score. Please try again.');
+}
+
       }
     });
 

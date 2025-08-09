@@ -107,116 +107,160 @@
   <audio id="spinSound" src="sound1.wav" preload="auto"></audio>
   <audio id="winSound" src="sound2.wav" preload="auto"></audio>
 
-  <script>
-    // Get round from URL or localStorage fallback
-    const urlParams = new URLSearchParams(window.location.search);
-    let currentRound = parseInt(urlParams.get('round')) || parseInt(localStorage.getItem('currentRound')) || 1;
-    if (currentRound > 5) currentRound = 5; // max 5 rounds
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import {
+    getFirestore,
+    doc,
+    setDoc,
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // Save currentRound to localStorage to keep flow
-    localStorage.setItem('currentRound', currentRound.toString());
+  // Firebase config (use your actual config here)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+    authDomain: "philcarr-20ac0.firebaseapp.com",
+    projectId: "philcarr-20ac0",
+    storageBucket: "philcarr-20ac0.firebasestorage.app",
+    messagingSenderId: "770728636073",
+    appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+    measurementId: "G-XRCH682RNE"
+  };
 
-    // Update UI round display
-    document.getElementById('roundNumberDisplay').textContent = currentRound;
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const spinSound = document.getElementById('spinSound');
-    const winSound = document.getElementById('winSound');
-    const spinBtn = document.getElementById('spinBtn');
+  // Other variables from your code:
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentRound = parseInt(urlParams.get('round')) || parseInt(localStorage.getItem('currentRound')) || 1;
+  if (currentRound > 5) currentRound = 5; // max 5 rounds
 
-    // Create an AudioContext to unlock mobile audio playback
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  localStorage.setItem('currentRound', currentRound.toString());
 
-    // Wheel setup
-    const theWheel = new Winwheel({
-      canvasId: 'wheelCanvas',
-      numSegments: 6,
-      outerRadius: 180,
-      textFontSize: 16,
-      segments: [
-        { fillStyle: '#e74c3c', text: 'Dance on table' },
-        { fillStyle: '#2ecc71', text: 'Wear a dress' },
-        { fillStyle: '#3498db', text: 'Sing karaoke' },
-        { fillStyle: '#f1c40f', text: 'Shot of tequila' },
-        { fillStyle: '#9b59b6', text: 'Selfie with a random' },
-        { fillStyle: '#1abc9c', text: 'Jump in pool' },
-      ],
-      animation: {
-        type: 'spinToStop',
-        duration: 5,
-        spins: 8,
-        callbackFinished: function (indicatedSegment) {
-          const forfeitDiv = document.getElementById('forfeitResult');
-          forfeitDiv.textContent = 'Forfeit: ' + indicatedSegment.text;
-          document.getElementById('nextRoundBtn').style.display = 'inline-block';
+  document.getElementById('roundNumberDisplay').textContent = currentRound;
 
-          // Stop spin sound
-          spinSound.pause();
-          spinSound.currentTime = 0;
+  const spinSound = document.getElementById('spinSound');
+  const winSound = document.getElementById('winSound');
+  const spinBtn = document.getElementById('spinBtn');
+  const forfeitDiv = document.getElementById('forfeitResult');
+  const nextRoundBtn = document.getElementById('nextRoundBtn');
 
-          // Play win sound
-          winSound.currentTime = 0;
-          winSound.play().catch(e => console.warn('Win sound play failed:', e));
+  // Firestore doc to track wheel status for current round
+  const statusDocRef = doc(db, "wheelStatus", `round${currentRound}`);
 
-          // Scroll result into view
-          forfeitDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-          // Re-enable spin button (if you want to allow replay)
-          spinBtn.disabled = false;
+  // Listen for realtime updates to sync UI for all players
+  onSnapshot(statusDocRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (data.spinning) {
+        // Someone is spinning now
+        spinBtn.disabled = true;
+        forfeitDiv.textContent = "Wheel is spinning...";
+        nextRoundBtn.style.display = 'none';
+      } else {
+        // Spin finished
+        spinBtn.disabled = false;
+        if (data.forfeit) {
+          forfeitDiv.textContent = "Forfeit: " + data.forfeit;
+          nextRoundBtn.style.display = 'inline-block';
+        } else {
+          forfeitDiv.textContent = '';
+          nextRoundBtn.style.display = 'none';
         }
       }
-    });
+    } else {
+      // No spin in progress or result yet
+      spinBtn.disabled = false;
+      forfeitDiv.textContent = '';
+      nextRoundBtn.style.display = 'none';
+    }
+  });
 
-    // Unlock audio on first click/tap anywhere
-    document.addEventListener('click', function unlockAudio() {
-      audioCtx.resume();
-
-      [spinSound, winSound].forEach(sound => {
-        sound.muted = true;
-        sound.play().then(() => {
-          sound.pause();
-          sound.currentTime = 0;
-          sound.muted = false;
-        }).catch(() => {});
-      });
-
-      document.removeEventListener('click', unlockAudio);
-    });
-
-    spinBtn.addEventListener('click', () => {
-      // Disable button to prevent double clicks
-      spinBtn.disabled = true;
-
-      // Clear previous results & hide next round button
-      document.getElementById('forfeitResult').textContent = '';
-      document.getElementById('nextRoundBtn').style.display = 'none';
-
-      // Reset wheel and start animation
-      theWheel.stopAnimation(false);
-      theWheel.rotationAngle = 0;
-      theWheel.startAnimation();
-
-      // Play spin sound after tiny delay to ensure playback
-      setTimeout(() => {
-        spinSound.currentTime = 0;
-        spinSound.play().catch(e => {
-          console.warn('Spin sound play failed:', e);
+  // Wheel setup (your existing code, unchanged)
+  const theWheel = new Winwheel({
+    canvasId: 'wheelCanvas',
+    numSegments: 6,
+    outerRadius: 180,
+    textFontSize: 16,
+    segments: [
+      { fillStyle: '#e74c3c', text: 'Dance on table' },
+      { fillStyle: '#2ecc71', text: 'Wear a dress' },
+      { fillStyle: '#3498db', text: 'Sing karaoke' },
+      { fillStyle: '#f1c40f', text: 'Shot of tequila' },
+      { fillStyle: '#9b59b6', text: 'Selfie with a random' },
+      { fillStyle: '#1abc9c', text: 'Jump in pool' },
+    ],
+    animation: {
+      type: 'spinToStop',
+      duration: 5,
+      spins: 8,
+      callbackFinished: async function (indicatedSegment) {
+        // Update Firestore: spinning false + save forfeit text
+        await setDoc(statusDocRef, {
+          spinning: false,
+          forfeit: indicatedSegment.text
         });
-      }, 20);
-    });
 
-    document.getElementById('nextRoundBtn').addEventListener('click', () => {
-      let nextRound = currentRound + 1;
-      localStorage.setItem('currentRound', nextRound.toString());
-
-      if (nextRound > 5) {
-        // Last round done, go to  winners page
-        window.location.href = 'winners.html';
-      } else {
-        // Go to next round quiz page
-        window.location.href = `round.html?round=${nextRound}`;
+        // Play sounds and update UI - your existing code
+        spinSound.pause();
+        spinSound.currentTime = 0;
+        winSound.currentTime = 0;
+        winSound.play().catch(e => console.warn('Win sound play failed:', e));
+        forfeitDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+    }
+  });
+
+  // Unlock audio on first user interaction (your existing code)
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  document.addEventListener('click', function unlockAudio() {
+    audioCtx.resume();
+    [spinSound, winSound].forEach(sound => {
+      sound.muted = true;
+      sound.play().then(() => {
+        sound.pause();
+        sound.currentTime = 0;
+        sound.muted = false;
+      }).catch(() => {});
     });
-  </script>
+    document.removeEventListener('click', unlockAudio);
+  });
+
+  spinBtn.addEventListener('click', async () => {
+    // Write spin in progress to Firestore
+    await setDoc(statusDocRef, {
+      spinning: true,
+      forfeit: null
+    });
+
+    // Your existing spin start code:
+    spinBtn.disabled = true;
+    forfeitDiv.textContent = '';
+    nextRoundBtn.style.display = 'none';
+
+    theWheel.stopAnimation(false);
+    theWheel.rotationAngle = 0;
+    theWheel.startAnimation();
+
+    setTimeout(() => {
+      spinSound.currentTime = 0;
+      spinSound.play().catch(e => console.warn('Spin sound play failed:', e));
+    }, 20);
+  });
+
+  nextRoundBtn.addEventListener('click', () => {
+    let nextRound = currentRound + 1;
+    localStorage.setItem('currentRound', nextRound.toString());
+
+    if (nextRound > 5) {
+      window.location.href = 'winners.html';
+    } else {
+      window.location.href = `round.html?round=${nextRound}`;
+    }
+  });
+</script>
+
 
 </body>
 </html>
