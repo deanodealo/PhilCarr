@@ -2,122 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spin the Wheel</title>
-
-  <!-- GSAP 3 and Winwheel 2.7.0 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.3/TweenMax.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/zarocknz/javascript-winwheel@2.7.0/Winwheel.min.js"></script>
-
   <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: Verdana, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 20px;
-      color: #fff;
-      text-shadow: 2px 2px #333;
-      user-select: none;
-    }
-
-    #wheelContainer {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      max-width: 100vw;
-      overflow-x: hidden;
-    }
-    canvas {
-      width: 90vw;
-      max-width: 400px;
-      height: auto;
-    }
-
-    #spinBtn {
-      margin-top: 40px;
-      padding: 15px 30px;
-      font-size: 1.5rem;
-      border: none;
-      background: linear-gradient(#ff8c00, #ff6600);
-      color: white;
-      border-radius: 20px;
-      box-shadow: 0 6px #b34700;
-      cursor: pointer;
-      transition: 0.2s ease-in-out;
-      user-select: none;
-    }
-
-    #spinBtn:hover:not(:disabled) {
-      transform: scale(1.05);
-    }
-
-    #spinBtn:active:not(:disabled) {
-      box-shadow: 0 2px #b34700;
-      transform: translateY(4px);
-    }
-
-    #spinBtn:disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-      transform: none;
-      box-shadow: none;
-    }
-
-    #forfeitResult {
-      margin-top: 40px;
-      font-size: 2rem;
-      font-weight: bold;
-      color: #00ffcc;
-      user-select: none;
-      min-height: 48px;
-    }
-
-    #nextRoundBtn {
-      display: none;
-      margin-top: 30px;
-      padding: 15px 30px;
-      font-size: 1.5rem;
-      cursor: pointer;
-      border-radius: 12px;
-      background: #00bcd4;
-      color: #121212;
-      border: none;
-      user-select: none;
-    }
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 1rem; }
+    #spinBtn:disabled { background: #ccc; cursor: not-allowed; }
+    #forfeit { margin-top: 1rem; font-weight: bold; font-size: 1.2rem; }
+    #waitingMsg { margin-top: 1rem; font-style: italic; }
   </style>
 </head>
 <body>
 
-  <h1>Spin the Wheel - Round <span id="roundNumberDisplay"></span></h1>
-  <div id="wheelContainer">
-    <canvas id="wheelCanvas" width="400" height="400"></canvas>
-    <br />
-    <button id="spinBtn">Spin the Wheel</button>
-    <div id="forfeitResult"></div>
-    <button id="nextRoundBtn">Next Round</button>
-  </div>
+<h1>Spin the Wheel</h1>
+<p id="instructions"></p>
 
-  <audio id="spinSound" src="sound1.wav" preload="auto"></audio>
-  <audio id="winSound" src="sound2.wav" preload="auto"></audio>
+<button id="spinBtn" disabled>Spin the Wheel</button>
+
+<div id="waitingMsg"></div>
+<div id="forfeit"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import {
     getFirestore,
     doc,
-    setDoc,
     onSnapshot,
-    collection,    // ✅ added
-    getDocs,       // ✅ added
-    query,         // ✅ added
-    orderBy        // ✅ added
+    updateDoc,
+    arrayUnion,
+    getDoc,
+    collection,
+    getDocs
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -133,144 +47,200 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const urlParams = new URLSearchParams(window.location.search);
-  let currentRound = parseInt(urlParams.get('round')) || parseInt(localStorage.getItem('currentRound')) || 1;
-  if (currentRound > 5) currentRound = 5;
+  window.addEventListener('DOMContentLoaded', () => {
+    console.log('Wheel page script loaded and DOM ready');
 
-  localStorage.setItem('currentRound', currentRound.toString());
+const urlParams = new URLSearchParams(window.location.search);
+const roundNumber = parseInt(urlParams.get('round') || '1');
+const gameId = urlParams.get('gameId') || 'defaultGame';  // ADD THIS LINE
+const playerName = localStorage.getItem('playerName') || 'Unknown Player';
+const gameStateDocRef = doc(db, 'games', gameId);          // USE gameId HERE
+const spinBtn = document.getElementById('spinBtn');
+const waitingMsg = document.getElementById('waitingMsg');
+const forfeitDiv = document.getElementById('forfeit');
+const instructions = document.getElementById('instructions');
 
-  const playerName = localStorage.getItem('playerName') || '';
-  document.getElementById('roundNumberDisplay').textContent = currentRound;
 
-  const spinSound = document.getElementById('spinSound');
-  const winSound = document.getElementById('winSound');
-  const spinBtn = document.getElementById('spinBtn');
-  const forfeitDiv = document.getElementById('forfeitResult');
-  const nextRoundBtn = document.getElementById('nextRoundBtn');
+    let hasSpun = false;
+    let totalPlayersCount = 0;
 
-  const statusDocRef = doc(db, "wheelStatus", `round${currentRound}`);
-  const playersCol = collection(db, 'players');
-
-  let isLastPlace = false;
-
-  // ✅ Determine if current player is last place
-  async function checkIfLastPlace() {
-    const playersSnapshot = await getDocs(query(playersCol, orderBy('score', 'asc')));
-    if (playersSnapshot.empty) {
-      isLastPlace = false;
-      return;
+    async function fetchTotalPlayers() {
+      try {
+        const playersSnapshot = await getDocs(collection(db, 'players'));
+        totalPlayersCount = playersSnapshot.size;
+        return playersSnapshot.docs.map(doc => ({
+          name: doc.id,
+          score: doc.data().score || 0
+        }));
+      } catch (e) {
+        console.error('Failed to fetch total players:', e);
+        totalPlayersCount = 0;
+        return [];
+      }
     }
-    const lowestScore = playersSnapshot.docs[0].data().score ?? 0;
-    isLastPlace = playersSnapshot.docs.some(docSnap => docSnap.id === playerName && (docSnap.data().score ?? 0) === lowestScore);
+
+    async function markPlayerFinished() {
+      try {
+        const gameSnap = await getDoc(gameStateDocRef);
+        if (!gameSnap.exists()) {
+          console.log('No game state document found in markPlayerFinished');
+          return;
+        }
+        const data = gameSnap.data();
+        const finished = data.playersFinishedRound || [];
+        if (!finished.includes(playerName)) {
+          await updateDoc(gameStateDocRef, {
+            playersFinishedRound: arrayUnion(playerName)
+          });
+          console.log(`Marked player "${playerName}" as finished.`);
+        }
+      } catch (err) {
+        console.error('Error in markPlayerFinished:', err);
+      }
+    }
+
+    async function spinWheel() {
+      try {
+        console.log('spinWheel started');
+        spinBtn.disabled = true;
+        waitingMsg.textContent = `${playerName} is spinning...`;
+        forfeitDiv.textContent = '';
+
+        await new Promise(res => setTimeout(res, 3000));
+        console.log('Spin delay complete');
+
+        const forfeits = ['Sing a song', 'Do 10 push-ups', 'Dance for 30 seconds', 'Tell a joke'];
+        const chosenForfeit = forfeits[Math.floor(Math.random() * forfeits.length)];
+        console.log('Chosen forfeit:', chosenForfeit);
+
+        const gameSnap = await getDoc(gameStateDocRef);
+        if (!gameSnap.exists()) {
+          console.log('No game state document found during spinWheel');
+          return;
+        }
+
+        const data = gameSnap.data();
+        const spinsDone = data.spinsDone || [];
+
+        await updateDoc(gameStateDocRef, {
+          spinsDone: [...spinsDone, playerName],
+          currentSpinner: null,
+          forfeitResult: chosenForfeit
+        });
+        console.log('Firestore updated with spin result');
+
+        hasSpun = true;
+        waitingMsg.textContent = '';
+        forfeitDiv.textContent = `Forfeit: ${chosenForfeit}`;
+        console.log('spinWheel finished');
+      } catch (error) {
+        console.error('Error in spinWheel:', error);
+        waitingMsg.textContent = 'Error occurred during spin. Please try again.';
+      }
+    }
+
+    // Attach event listener to spin button
+    spinBtn.addEventListener('click', async () => {
+      console.log('Spin button clicked');
+      await spinWheel();
+    });
+
+
+
+onSnapshot(gameStateDocRef, async (docSnap) => {
+  console.log('onSnapshot listener triggered');
+  if (!docSnap.exists()) {
+    console.log('No Games/defaultGame document found');
+    return;
   }
 
-  await checkIfLastPlace();
+  const data = docSnap.data();
 
-  onSnapshot(statusDocRef, (docSnap) => {
-    if (!docSnap.exists()) {
-      spinBtn.disabled = !isLastPlace;
-      forfeitDiv.textContent = '';
-      nextRoundBtn.style.display = 'none';
+  if (data.phase === 'winners') {
+    console.log('Phase is winners — redirecting to winners.html');
+    setTimeout(() => {
+      window.location.href = `winners.html?gameId=${gameId}`;
+    }, 0);
+    return;
+  }
+
+  if (data.phase && data.phase !== `wheel${roundNumber}`) {
+    if (data.phase.startsWith('round')) {
+      const newRound = parseInt(data.phase.replace('round', ''), 10);
+      console.log(`Phase changed: redirecting to round ${newRound}`);
+      window.location.href = `round.html?round=${newRound}`;
+      return;
+    } else if (data.phase === 'leaderboard') {
+      console.log('Phase changed: redirecting to leaderboard');
+      window.location.href = `leaderboard.html`;
       return;
     }
+  }
 
-    const data = docSnap.data();
-    if (data.spinning) {
-      spinBtn.disabled = true;
-      forfeitDiv.textContent = "Wheel is spinning...";
-      nextRoundBtn.style.display = 'none';
-    } else {
-      spinBtn.disabled = !isLastPlace;
-      if (data.forfeit) {
-        forfeitDiv.textContent = "Forfeit: " + data.forfeit;
-        nextRoundBtn.style.display = 'inline-block';
-      } else {
+      const playersFinishedRound = data.playersFinishedRound || [];
+      const spinEligiblePlayers = data.spinEligiblePlayers || [];
+      const spinsDone = data.spinsDone || [];
+      const currentSpinner = data.currentSpinner || null;
+      const forfeitResult = data.forfeitResult || '';
+
+      await fetchTotalPlayers();
+
+      console.log('Player:', playerName);
+      console.log('Spin Eligible Players:', spinEligiblePlayers);
+      console.log('Spins Done:', spinsDone);
+      console.log('Current Spinner:', currentSpinner);
+      console.log('Is Spin Eligible:', spinEligiblePlayers.includes(playerName));
+      console.log('Has Spun:', spinsDone.includes(playerName));
+
+      instructions.textContent = `Players finished this round: ${playersFinishedRound.length} of ${totalPlayersCount}`;
+
+      if (playersFinishedRound.length < totalPlayersCount) {
+        spinBtn.disabled = true;
+        waitingMsg.textContent = `Waiting for all players to finish round ${roundNumber}... (${playersFinishedRound.length} of ${totalPlayersCount})`;
         forfeitDiv.textContent = '';
-        nextRoundBtn.style.display = 'none';
+        return;
       }
-    }
-  });
 
-  const theWheel = new Winwheel({
-    canvasId: 'wheelCanvas',
-    numSegments: 6,
-    outerRadius: 180,
-    textFontSize: 16,
-    segments: [
-      { fillStyle: '#e74c3c', text: 'Dance on table' },
-      { fillStyle: '#2ecc71', text: 'Wear a dress' },
-      { fillStyle: '#3498db', text: 'Sing karaoke' },
-      { fillStyle: '#f1c40f', text: 'Shot of tequila' },
-      { fillStyle: '#9b59b6', text: 'Selfie with a random' },
-      { fillStyle: '#1abc9c', text: 'Jump in pool' },
-    ],
-    animation: {
-      type: 'spinToStop',
-      duration: 5,
-      spins: 8,
-      callbackFinished: async function (indicatedSegment) {
-        await setDoc(statusDocRef, {
-          spinning: false,
-          forfeit: indicatedSegment.text
-        });
+      const normalizedPlayerName = playerName.trim().toLowerCase();
+      const normalizedSpinEligible = spinEligiblePlayers.map(p => p.trim().toLowerCase());
 
-        spinSound.pause();
-        spinSound.currentTime = 0;
-        winSound.currentTime = 0;
-        winSound.play().catch(e => console.warn('Win sound play failed:', e));
-        forfeitDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const canSpin = normalizedSpinEligible.includes(normalizedPlayerName) &&
+                      !spinsDone.includes(playerName) &&
+                      (currentSpinner === null || currentSpinner === playerName);
+
+      console.log('--- Spin Button Debug ---');
+      console.log('normalizedPlayerName:', `"${normalizedPlayerName}"`);
+      console.log('normalizedSpinEligible:', normalizedSpinEligible);
+      console.log('spinsDone:', spinsDone);
+      console.log('currentSpinner:', currentSpinner);
+      console.log('canSpin:', canSpin);
+
+      if (canSpin) {
+        console.log('Enabling spin button');
+        spinBtn.disabled = false;
+        waitingMsg.textContent = '';
+      } else if (currentSpinner && currentSpinner !== playerName) {
+        console.log('Disabling spin button - someone else is spinning');
+        spinBtn.disabled = true;
+        waitingMsg.textContent = `${currentSpinner} is spinning the wheel...`;
+      } else {
+        console.log('Disabling spin button - conditions not met');
+        spinBtn.disabled = true;
+        waitingMsg.textContent = '';
       }
-    }
-  });
 
-  // Unlock audio on first click
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  document.addEventListener('click', function unlockAudio() {
-    audioCtx.resume();
-    [spinSound, winSound].forEach(sound => {
-      sound.muted = true;
-      sound.play().then(() => {
-        sound.pause();
-        sound.currentTime = 0;
-        sound.muted = false;
-      }).catch(() => {});
-    });
-    document.removeEventListener('click', unlockAudio);
-  });
+      forfeitDiv.textContent = forfeitResult ? `Forfeit: ${forfeitResult}` : '';
+      instructions.textContent = `Players eligible to spin: ${spinEligiblePlayers.join(', ')}`;
 
-  spinBtn.addEventListener('click', async () => {
-    if (!isLastPlace) return;
-
-    await setDoc(statusDocRef, {
-      spinning: true,
-      forfeit: null
     });
 
-    spinBtn.disabled = true;
-    forfeitDiv.textContent = '';
-    nextRoundBtn.style.display = 'none';
-
-    theWheel.stopAnimation(false);
-    theWheel.rotationAngle = 0;
-    theWheel.startAnimation();
-
-    setTimeout(() => {
-      spinSound.currentTime = 0;
-      spinSound.play().catch(e => console.warn('Spin sound play failed:', e));
-    }, 20);
-  });
-
-  nextRoundBtn.addEventListener('click', () => {
-    let nextRound = currentRound + 1;
-    localStorage.setItem('currentRound', nextRound.toString());
-
-    if (nextRound > 5) {
-      window.location.href = 'winners.html';
-    } else {
-      window.location.href = `round.html?round=${nextRound}`;
-    }
+    (async () => {
+      await fetchTotalPlayers();
+      await markPlayerFinished();
+    })();
   });
 </script>
+
 
 
 

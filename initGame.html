@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Initialize Game Document</title>
+</head>
+<body>
+  <h1>Initialize Firestore Game Document</h1>
+  <button id="initBtn">Initialize defaultGame</button>
+  <p id="status"></p>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+      authDomain: "philcarr-20ac0.firebaseapp.com",
+      projectId: "philcarr-20ac0",
+      storageBucket: "philcarr-20ac0.firebasestorage.app",
+      messagingSenderId: "770728636073",
+      appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+      measurementId: "G-XRCH682RNE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const initBtn = document.getElementById('initBtn');
+    const statusP = document.getElementById('status');
+
+    initBtn.addEventListener('click', async () => {
+      statusP.textContent = 'Initializing... Please wait.';
+      initBtn.disabled = true;
+
+      try {
+        const gameDocRef = doc(db, 'games', 'defaultGame');
+        await setDoc(gameDocRef, {
+          spinEligiblePlayers: [],
+          spinsDone: [],
+          currentSpinner: null,
+          forfeitResult: null
+        }, { merge: true });
+
+        statusP.textContent = 'Initialization successful! Check Firestore.';
+      } catch (error) {
+        statusP.textContent = 'Initialization failed: ' + error.message;
+        console.error(error);
+      } finally {
+        initBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

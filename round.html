@@ -3,137 +3,224 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quiz Round</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Phil Carr Quiz - Round</title>
+  <link rel="stylesheet" href="round.css" />
 </head>
 <body>
-  <div class="round-container">
-    <h1 id="roundTitle">Round</h1>
-    <h3 id="questionNumber">Question</h3>
-    <div id="questionArea">
-      <div class="answer-buttons">
-        <button class="answer">Answer A</button>
-        <button class="answer">Answer B</button>
-        <button class="answer">Answer C</button>
-        <button class="answer">Answer D</button>
-      </div>
-    </div>
-    <button id="continueBtn" style="display:none;">Continue</button>
-  </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-    import { increment } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-    
-    const firebaseConfig = {
-      apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
-      authDomain: "philcarr-20ac0.firebaseapp.com",
-      projectId: "philcarr-20ac0",
-      storageBucket: "philcarr-20ac0.firebasestorage.app",
-      messagingSenderId: "770728636073",
-      appId: "1:770728636073:web:d2bddbee786446c37d03b8",
-      measurementId: "G-XRCH682RNE"
-    };
+<h1>Round <span id="roundNumber"></span></h1>
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+<div id="questionText">Loading question...</div>
 
-    // Get round from localStorage or default 1
-    const roundNumber = parseInt(localStorage.getItem('currentRound')) || 1;
+<div id="answersContainer"></div>
 
-    // Player info from localStorage
-    const playerName = localStorage.getItem('playerName') || 'Unknown Player';
+<button id="nextBtn" disabled>Next Question</button>
+<img id="roundImage" src="/images/phil2.jpg" alt="Round related image" />
 
-    const roundTitle = document.getElementById('roundTitle');
-    const questionNumber = document.getElementById('questionNumber');
-    const answerButtons = document.querySelectorAll('.answer');
-    const continueBtn = document.getElementById('continueBtn');
+<div id="feedback"></div>
 
-    let questions = [];
-    let currentQuestion = 0;
-    let score = 0;
-    let answerSelected = false;
+<!-- Added status div here -->
+<div id="status"></div>
 
-    roundTitle.textContent = `Round ${roundNumber}`;
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, updateDoc, arrayUnion, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // Load questions from Firestore for the current round
-    async function loadQuestions() {
-      const roundDoc = doc(db, 'rounds', `round${roundNumber}`);
-      const snap = await getDoc(roundDoc);
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+    authDomain: "philcarr-20ac0.firebaseapp.com",
+    projectId: "philcarr-20ac0",
+    storageBucket: "philcarr-20ac0.firebasestorage.app",
+    messagingSenderId: "770728636073",
+    appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+    measurementId: "G-XRCH682RNE"
+  };
 
-      if (snap.exists()) {
-        questions = snap.data().questions;
-        if (!Array.isArray(questions) || questions.length === 0) {
-          alert('No questions found for this round.');
-          return;
-        }
-        setupAnswerListeners();
-        loadQuestion();
-      } else {
-        alert('Round data not found.');
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const roundNumber = parseInt(urlParams.get('round')) || 1;
+  const gameId = urlParams.get('gameId') || 'defaultGame';
+
+  const roundNumberEl = document.getElementById('roundNumber');
+  const questionText = document.getElementById('questionText');
+  const answersContainer = document.getElementById('answersContainer');
+  const nextBtn = document.getElementById('nextBtn');
+  const feedback = document.getElementById('feedback');
+  const statusDiv = document.getElementById('status'); // Add a status div to show waiting messages
+
+  roundNumberEl.textContent = roundNumber;
+
+  let questions = [];
+  let currentQuestionIndex = 0;
+  let score = 0;
+  let answered = false;
+  let roundFinished = false;
+
+  const playerName = localStorage.getItem('playerName');
+  if (!playerName) {
+    alert("Player not found, please return to homepage and enter your name.");
+    window.location.href = "index.html";
+  }
+
+  const gameDocRef = doc(db, 'games', gameId);
+
+// Listen for host-controlled phase & round changes
+onSnapshot(gameDocRef, (docSnap) => {
+  if (!docSnap.exists()) return;
+  const data = docSnap.data();
+  const phase = data.phase || '';
+  const hostRound = data.round || 1;
+
+  if (phase === 'questions' && hostRound === roundNumber) {
+    // Stay on this page and allow answering
+    if (roundFinished) {
+      statusDiv.textContent = 'Waiting for host to move to next phase...';
+      nextBtn.style.display = 'none';
+    } else {
+      statusDiv.textContent = '';
+      nextBtn.style.display = 'inline-block';
+    }
+  } else if (phase.startsWith('wheel')) {
+    const wheelRound = parseInt(phase.replace('wheel', ''), 10);
+    if (wheelRound === roundNumber) {
+      window.location.href = `wheel.html?round=${wheelRound}&gameId=${gameId}`;
+    }
+  } else if (phase === 'leaderboard') {
+    window.location.href = `leaderboard.html?gameId=${gameId}`;
+  } else if (phase === 'winners') {
+    setTimeout(() => {
+      window.location.href = `winners.html?gameId=${gameId}`;
+    }, 0);
+    return;
+  } else if (hostRound !== roundNumber) {
+    // Round changed, redirect to new round
+    window.location.href = `round.html?round=${hostRound}&gameId=${gameId}`;
+  }
+});
+
+
+  async function loadQuestions() {
+    try {
+      const roundDocRef = doc(db, 'rounds', `round${roundNumber}`);
+      const roundSnap = await getDoc(roundDocRef);
+
+      if (!roundSnap.exists()) {
+        questionText.textContent = 'Round data not found.';
+        return;
       }
+
+      const roundData = roundSnap.data();
+
+      if (!roundData.questions || !Array.isArray(roundData.questions)) {
+        questionText.textContent = 'No questions found for this round.';
+        return;
+      }
+
+      questions = roundData.questions;
+      showQuestion();
+
+    } catch (error) {
+      console.error('Error loading questions:', error);
+      questionText.textContent = 'Failed to load questions.';
     }
+  }
 
-    function loadQuestion() {
-      const q = questions[currentQuestion];
-      questionNumber.textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
-      answerButtons.forEach((btn, i) => {
-        btn.textContent = q.answers[i] || '';
-        btn.disabled = false;
-        btn.style.backgroundColor = '';
-      });
-      continueBtn.style.display = 'none';
-      answerSelected = false;
-    }
+  function showQuestion() {
+    answered = false;
+    feedback.textContent = '';
+    nextBtn.disabled = true;
 
-    function setupAnswerListeners() {
-      answerButtons.forEach((btn, i) => {
-        btn.addEventListener('click', () => {
-          if (answerSelected) return;
+    if (currentQuestionIndex >= questions.length) {
+      questionText.textContent = `Round Complete! Your score this round: ${score} / ${questions.length}`;
+      answersContainer.innerHTML = '';
+      nextBtn.textContent = 'Finish Round';
+      nextBtn.disabled = false;
 
-          answerSelected = true;
-          const q = questions[currentQuestion];
-
-          if (i === q.correct) {
-            btn.style.backgroundColor = '#4caf50'; // green
-            score++;
-          } else {
-            btn.style.backgroundColor = '#f44336'; // red
-            answerButtons[q.correct].style.backgroundColor = '#4caf50'; // correct answer
-          }
-
-          answerButtons.forEach(b => b.disabled = true);
-          continueBtn.style.display = 'inline-block';
-        });
-      });
-    }
-
-    continueBtn.addEventListener('click', async () => {
-      currentQuestion++;
-      if (currentQuestion < questions.length) {
-        loadQuestion();
-      } else {
-        // Save score and round to Firestore player doc (create if doesn't exist)
+      nextBtn.onclick = async () => {
         try {
-  const playerDoc = doc(db, 'players', playerName);
-  await updateDoc(playerDoc, {
-    score: increment(score),
-    currentRound: roundNumber,
-    finishedRound: roundNumber   // <--- mark round finished here
-  });
+          if (roundFinished) return; // prevent double finish
+          roundFinished = true;
 
-  window.location.href = `leaderboard.html?round=${roundNumber}`;
-} catch (e) {
-  console.error('Error saving score:', e);
-  alert('Failed to save score. Please try again.');
-}
+          // 1. Increment player's total score by this round's score
+          const playerDocRef = doc(db, 'players', playerName);
+          await updateDoc(playerDocRef, {
+            score: increment(score),
+            currentRound: roundNumber + 1
+          });
 
-      }
+          // 2. Mark this player as finished for this round in the game doc
+          const gameDocRefPlayersFinished = doc(db, 'games', gameId);
+          await updateDoc(gameDocRefPlayersFinished, {
+            playersFinishedRound: arrayUnion(playerName)
+          });
+
+          // Instead of redirecting here, wait for host to update phase
+          statusDiv.textContent = 'Round finished! Waiting for host to move to next phase...';
+          nextBtn.style.display = 'none';
+
+        } catch (e) {
+          alert("Error saving progress: " + e.message);
+          console.error(e);
+        }
+      };
+      return;
+    }
+
+    const currentQ = questions[currentQuestionIndex];
+    questionText.textContent = currentQ.question;
+
+    answersContainer.innerHTML = '';
+
+    currentQ.answers.forEach((answer, idx) => {
+      const btn = document.createElement('button');
+      btn.textContent = answer;
+      btn.className = 'answerBtn';
+      btn.onclick = () => selectAnswer(idx, currentQ.correct);
+      answersContainer.appendChild(btn);
     });
+  }
 
-    loadQuestions();
-  </script>
+  async function selectAnswer(selectedIdx, correctIdx) {
+    if (answered) return;
+    answered = true;
+
+    if (selectedIdx === correctIdx) {
+      score++;
+      feedback.textContent = 'Correct!';
+      feedback.style.color = 'green';
+    } else {
+      feedback.textContent = `Wrong! Correct answer: ${questions[currentQuestionIndex].answers[correctIdx]}`;
+      feedback.style.color = 'red';
+    }
+
+    Array.from(answersContainer.children).forEach(btn => btn.disabled = true);
+
+    nextBtn.disabled = false;
+    nextBtn.textContent = (currentQuestionIndex < questions.length - 1) ? 'Next Question' : 'Finish Round';
+
+    // Save answer to Firestore player doc (optional)
+    try {
+      const playerDocRef = doc(db, 'players', playerName);
+      const answerField = `answers.round${roundNumber}.question${currentQuestionIndex}`;
+      await updateDoc(playerDocRef, {
+        [answerField]: selectedIdx
+      });
+      console.log(`Saved answer for question ${currentQuestionIndex + 1} as option ${selectedIdx}`);
+    } catch (error) {
+      console.error('Failed to save answer:', error);
+    }
+
+    nextBtn.onclick = () => {
+      currentQuestionIndex++;
+      showQuestion();
+    };
+  }
+
+  loadQuestions();
+</script>
+
+
 </body>
 </html>

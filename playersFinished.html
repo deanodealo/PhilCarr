@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Update Players Finished Round</title>
+</head>
+<body>
+  <h1>Update playersFinishedRound in Firestore</h1>
+
+  <label for="playersFinishedRoundInput">Players Finished Round (comma separated):</label><br />
+  <input type="text" id="playersFinishedRoundInput" size="50" placeholder="e.g. Alice,Bob,Charlie" /><br /><br />
+
+  <button id="updateBtn">Update Firestore</button>
+
+  <p id="status"></p>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+      authDomain: "philcarr-20ac0.firebaseapp.com",
+      projectId: "philcarr-20ac0",
+      storageBucket: "philcarr-20ac0.firebasestorage.app",
+      messagingSenderId: "770728636073",
+      appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+      measurementId: "G-XRCH682RNE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const updateBtn = document.getElementById('updateBtn');
+    const statusEl = document.getElementById('status');
+
+    updateBtn.addEventListener('click', async () => {
+      statusEl.textContent = 'Updating Firestore...';
+
+      const input = document.getElementById('playersFinishedRoundInput').value.trim();
+      const playersFinishedRound = input ? input.split(',').map(name => name.trim()).filter(Boolean) : [];
+
+      try {
+        const gameDocRef = doc(db, 'games', 'defaultGame');
+        await updateDoc(gameDocRef, {
+          playersFinishedRound
+        });
+        statusEl.textContent = 'playersFinishedRound updated successfully!';
+      } catch (error) {
+        statusEl.textContent = 'Error updating Firestore: ' + error.message;
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>

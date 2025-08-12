@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Delete All Games & Players - Admin Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+      background: #f8f8f8;
+    }
+    button {
+      font-size: 1.5rem;
+      padding: 20px 40px;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 15px #e74c3caa;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #c0392b;
+    }
+    #status {
+      margin-top: 30px;
+      font-size: 1.2rem;
+      color: #333;
+      min-height: 1.5em;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <h1>Delete All Games & Players</h1>
+  <p><strong>Warning:</strong> This will permanently delete all game data and players from Firestore.</p>
+  <button id="deleteBtn">Delete All Games & Players</button>
+  <div id="status"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      deleteDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+      authDomain: "philcarr-20ac0.firebaseapp.com",
+      projectId: "philcarr-20ac0",
+      storageBucket: "philcarr-20ac0.firebasestorage.app",
+      messagingSenderId: "770728636073",
+      appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+      measurementId: "G-XRCH682RNE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const deleteBtn = document.getElementById('deleteBtn');
+    const statusDiv = document.getElementById('status');
+
+    function logStatus(msg) {
+      statusDiv.textContent += msg + '\n';
+      console.log(msg);
+    }
+
+    async function deleteCollection(path) {
+      const colRef = collection(db, path);
+      const snapshot = await getDocs(colRef);
+      if (snapshot.empty) {
+        logStatus(`No documents found in ${path}`);
+        return;
+      }
+      for (const docSnap of snapshot.docs) {
+        logStatus(`Deleting ${path} document: ${docSnap.id}`);
+        await deleteDoc(docSnap.ref);
+      }
+    }
+
+    async function deleteAllGamesAndPlayers() {
+      try {
+        statusDiv.textContent = '';
+        logStatus('Fetching all games...');
+        const gamesCol = collection(db, 'games');
+        const gamesSnapshot = await getDocs(gamesCol);
+
+        if (gamesSnapshot.empty) {
+          logStatus('No games found to delete.');
+        } else {
+          for (const gameDoc of gamesSnapshot.docs) {
+            const gameId = gameDoc.id;
+            logStatus(`Deleting players of game: ${gameId} ...`);
+            await deleteCollection(`games/${gameId}/players`);
+            logStatus(`Deleting game document: ${gameId} ...`);
+            await deleteDoc(gameDoc.ref);
+          }
+        }
+
+        // Delete top-level players collection (if it exists)
+        logStatus('Deleting top-level players collection (if exists)...');
+        await deleteCollection('players');
+
+        logStatus('All games and players deleted successfully.');
+      } catch (err) {
+        console.error(err);
+        logStatus('Error occurred during deletion. Check console.');
+      }
+    }
+
+    deleteBtn.addEventListener('click', () => {
+      if (confirm('Are you absolutely sure? This will delete ALL games and players permanently.')) {
+        deleteBtn.disabled = true;
+        deleteAllGamesAndPlayers().finally(() => {
+          deleteBtn.disabled = false;
+        });
+      }
+    });
+  </script>
+</body>
+</html>

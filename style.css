@@ -182,3 +182,9 @@ button.answer:active {
 #letsPlayBtn:hover {
   transform: scale(1.05);
 }
+
+#timerDisplay {
+  font-size: 1.2rem;
+  color: #e74c3c; /* red-ish */
+  margin-bottom: 15px;
+}

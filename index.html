@@ -14,27 +14,29 @@
 
 <audio id="welcomeSound" src="sound3.wav" preload="auto"></audio>
 
+<div class="container">
+  <img src="images/phil1.jpg" alt="Phil Carr Logo" class="logo" />
+  <h1>Welcome to Phil Carr!</h1>
 
-  <div class="container">
-    <img src="images/phil1.jpg" alt="Phil Carr Logo" class="logo" />
-    <h1>Welcome to Phil Carr!</h1>
-
-    <div class="rules">
-      <strong>How to Play:</strong><br />
-      Five Rounds. Five questions per round<br />
-      Bottom after each round spins the Wheel<br />
-      Each team has 1x Phil Carr<br /><br />
-      Good luck!
-    </div>
-
-    <input type="text" id="playerName" placeholder="Enter Your Name" />
-    <button id="continueBtn">Continue</button>
-
+  <div class="rules">
+    <strong>How to Play:</strong><br />
+    Five Rounds. Five questions per round<br />
+    Bottom after each round spins the Wheel<br />
+    Each team has 1x Phil Carr<br /><br />
+    Good luck!
   </div>
+
+<input type="text" id="playerName" placeholder="Enter Your Name" />
+<button id="continueBtn">Continue</button>
+
+<!-- Status message for waiting -->
+<div id="status" style="margin-top: 10px; font-weight: bold; color: #444;"></div>
+
+</div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   // Your Firebase config
   const firebaseConfig = {
@@ -47,40 +49,79 @@
     measurementId: "G-XRCH682RNE"
   };
 
-  // Initialize Firebase & Firestore
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+// Initialize Firebase & Firestore
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  document.getElementById('continueBtn').addEventListener('click', async function () {
-    const playerName = document.getElementById('playerName').value.trim();
+const gameDocRef = doc(db, 'games', 'defaultGame'); // Consistent game state doc
 
-    if (playerName === '') {
-      alert('Please enter your name!');
-      return;
-    }
+document.getElementById('continueBtn').addEventListener('click', async function () {
+  const playerName = document.getElementById('playerName').value.trim();
 
-    try {
-      // Save player to Firestore with initial score 0 and round 1
-      await setDoc(doc(db, "players", playerName), {
-        name: playerName,
-        score: 0,
-        currentRound: 1,
-        timestamp: new Date()
-      });
+  if (playerName === '') {
+    alert('Please enter your name!');
+    return;
+  }
 
-      localStorage.setItem('playerName', playerName);
-      window.location.href = 'round.html';
+  try {
+    // Save player to Firestore with initial score 0 and round 1
+    await setDoc(doc(db, "players", playerName), {
+      name: playerName,
+      score: 0,
+      currentRound: 1,
+      timestamp: new Date()
+    });
 
-    } catch (error) {
-      alert("Error saving player: " + error.message);
-      console.error(error);
-    }
-  });
+    console.log(`Player ${playerName} saved to Firestore.`);
 
-  window.addEventListener('load', () => {
-    const overlay = document.getElementById('overlay');
-    const letsPlayBtn = document.getElementById('letsPlayBtn');
-    const welcomeSound = document.getElementById('welcomeSound');
+    localStorage.setItem('playerName', playerName);
+
+    // Show waiting message while listening for host to start the game
+    const statusDiv = document.getElementById('status');
+    statusDiv.textContent = "Waiting for host to start the game...";
+
+onSnapshot(gameDocRef, (docSnap) => {
+  if (!docSnap.exists()) {
+    console.log("gameState/currentGame doc does not exist");
+    return;
+  }
+
+  const data = docSnap.data();
+  console.log("Homepage detected game state change:", data);
+
+  const phase = data.phase || '';
+  const gameId = data.gameId || 'defaultGame';
+
+  // Priority redirect for winners
+  if (phase === 'winners') {
+    console.log("Redirecting to winners.html");
+    window.location.href = `winners.html?gameId=${gameId}`;
+    return; // stop further redirects
+  }
+
+  if (phase.startsWith('round')) {
+    const roundNum = parseInt(phase.replace('round', ''), 10);
+    console.log(`Redirecting to round.html for round ${roundNum}`);
+    window.location.href = `round.html?round=${roundNum}&gameId=${gameId}`;
+  } else if (phase === 'leaderboard') {
+    console.log("Redirecting to leaderboard.html");
+    window.location.href = `leaderboard.html?gameId=${gameId}`;
+  } else {
+    console.log("No redirect — current phase:", phase);
+  }
+});
+
+
+
+
+
+  } catch (error) {
+    alert("Error saving player: " + error.message);
+    console.error(error);
+  }
+});
+
+
 
     letsPlayBtn.addEventListener('click', () => {
       // Play sound
@@ -96,12 +137,10 @@
         overlay.style.display = 'none';
       }, 500);
     });
-  });
+  
 </script>
-
 
 
 </body>
 </html>
-
 
