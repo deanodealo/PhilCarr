@@ -103,10 +103,11 @@ onSnapshot(gameDocRef, (docSnap) => {
     const roundNum = parseInt(phase.replace('round', ''), 10);
     console.log(`Redirecting to round.html for round ${roundNum}`);
     window.location.href = `round.html?round=${roundNum}&gameId=${gameId}`;
-  } else if (phase === 'leaderboard') {
-    console.log("Redirecting to leaderboard.html");
-    window.location.href = `leaderboard.html?gameId=${gameId}`;
-  } else {
+  } else if (phase === 'wheel') {
+  console.log("Redirecting to winwheel.html");
+  window.location.href = `winwheel.html?gameId=${gameId}`;
+}
+ else {
     console.log("No redirect — current phase:", phase);
   }
 });

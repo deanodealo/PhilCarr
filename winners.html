@@ -2,7 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Final Winners</title>
+  <style>
+    /* Background & overall style */
+    body {
+      margin: 0;
+      padding: 2rem;
+      font-family: 'Arial Black', Arial, sans-serif;
+      background: radial-gradient(circle at top, #111 0%, #000 100%);
+      color: #f9d71c;
+      text-align: center;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px #f9d71c, 0 0 20px #f1c40f, 0 0 30px #e67e22;
+      animation: glow 1.5s infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 0 0 10px #f9d71c, 0 0 20px #f1c40f, 0 0 30px #e67e22; }
+      to { text-shadow: 0 0 20px #f9d71c, 0 0 30px #f1c40f, 0 0 40px #e67e22; }
+    }
+
+    #leaderboard {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .player {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid #f9d71c;
+      border-radius: 15px;
+      padding: 1rem 2rem;
+      width: 300px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 0 15px #f9d71c, 0 0 30px #e67e22 inset;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .player:first-child {
+      font-size: 2rem;
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 20px #f9d71c, 0 0 40px #e67e22 inset;
+      border-color: gold;
+      transform: scale(1.1);
+    }
+
+    .player:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px #f9d71c, 0 0 50px #e67e22 inset;
+    }
+
+    /* Confetti animation (simple) */
+    .confetti {
+      position: fixed;
+      top: 0;
+      width: 10px;
+      height: 10px;
+      background: #f9d71c;
+      animation: fall linear infinite;
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(-50px) rotate(0deg); }
+      100% { transform: translateY(110vh) rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
   <h1>Quiz Winner & Final Leaderboard</h1>
@@ -10,17 +84,17 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
-    authDomain: "philcarr-20ac0.firebaseapp.com",
-    projectId: "philcarr-20ac0",
-    storageBucket: "philcarr-20ac0.firebasestorage.app",
-    messagingSenderId: "770728636073",
-    appId: "1:770728636073:web:d2bddbee786446c37d03b8",
-    measurementId: "G-XRCH682RNE"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+      authDomain: "philcarr-20ac0.firebaseapp.com",
+      projectId: "philcarr-20ac0",
+      storageBucket: "philcarr-20ac0.firebasestorage.app",
+      messagingSenderId: "770728636073",
+      appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+      measurementId: "G-XRCH682RNE"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -34,16 +108,26 @@
         players.push({ name: doc.id, score: data.score || 0 });
       });
 
-      // Sort descending by score (highest score first)
-      players.sort((a, b) => b.score - a.score);
+      // Sort descending by score
+      players.sort((a,b) => b.score - a.score);
 
       const leaderboardDiv = document.getElementById('leaderboard');
       leaderboardDiv.innerHTML = players.map((p, i) => `
-        <p>${i + 1}. ${p.name} — ${p.score} points</p>
+        <div class="player">${i + 1}. ${p.name} — ${p.score} points</div>
       `).join('');
     }
 
     loadLeaderboard();
+
+    // Add simple confetti effect
+    for (let i=0; i<50; i++) {
+      const confetti = document.createElement('div');
+      confetti.classList.add('confetti');
+      confetti.style.left = `${Math.random()*100}vw`;
+      confetti.style.animationDuration = `${Math.random()*3 + 2}s`;
+      confetti.style.background = `hsl(${Math.random()*60}, 100%, 50%)`;
+      document.body.appendChild(confetti);
+    }
   </script>
 </body>
 </html>

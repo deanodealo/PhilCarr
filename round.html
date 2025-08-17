@@ -85,7 +85,7 @@ onSnapshot(gameDocRef, (docSnap) => {
   } else if (phase.startsWith('wheel')) {
     const wheelRound = parseInt(phase.replace('wheel', ''), 10);
     if (wheelRound === roundNumber) {
-      window.location.href = `wheel.html?round=${wheelRound}&gameId=${gameId}`;
+      window.location.href = `winwheel.html?round=${wheelRound}&gameId=${gameId}`;
     }
   } else if (phase === 'leaderboard') {
     window.location.href = `leaderboard.html?gameId=${gameId}`;

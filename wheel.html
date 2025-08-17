@@ -5,21 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spin the Wheel</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 1rem; }
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 1rem; text-align: center; }
     #spinBtn:disabled { background: #ccc; cursor: not-allowed; }
     #forfeit { margin-top: 1rem; font-weight: bold; font-size: 1.2rem; }
     #waitingMsg { margin-top: 1rem; font-style: italic; }
+    #wheelContainer { position: relative; margin: 20px auto; width: 300px; height: 300px; }
+    #wheelImage { width: 100%; height: 100%; transform-origin: 50% 50%; }
+    #pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid red; }
   </style>
 </head>
 <body>
 
 <h1>Spin the Wheel</h1>
-<p id="instructions"></p>
+<p id="instructions">Players eligible to spin: Dean</p>
 
-<button id="spinBtn" disabled>Spin the Wheel</button>
+<div id="wheelContainer">
+  <img id="wheelImage" src="wheel.png" alt="Wheel" />
+  <div id="pointer"></div>
+</div>
+
+<button id="spinBtn">Spin the Wheel</button>
 
 <div id="waitingMsg"></div>
 <div id="forfeit"></div>
+
+<script>
+  const spinBtn = document.getElementById('spinBtn');
+  const wheel = document.getElementById('wheelImage');
+  const forfeitDiv = document.getElementById('forfeit');
+
+  const forfeits = ['Sing a song', 'Do 10 push-ups', 'Dance for 30 seconds', 'Tell a joke'];
+
+  spinBtn.addEventListener('click', () => {
+    spinBtn.disabled = true;
+    forfeitDiv.textContent = '';
+    const spins = Math.floor(Math.random() * 5) + 5; // random full rotations
+    const angle = Math.floor(Math.random() * 360);    // final angle
+    const totalRotation = spins * 360 + angle;
+
+    wheel.style.transition = 'transform 3s cubic-bezier(0.33, 1, 0.68, 1)';
+    wheel.style.transform = `rotate(${totalRotation}deg)`;
+
+    // Show result after spin
+    setTimeout(() => {
+      const chosenForfeit = forfeits[Math.floor(Math.random() * forfeits.length)];
+      forfeitDiv.textContent = `Forfeit: ${chosenForfeit}`;
+      spinBtn.disabled = false;
+      // Reset rotation to keep animation smooth on next spin
+      wheel.style.transition = 'none';
+      wheel.style.transform = `rotate(${angle}deg)`;
+    }, 3000);
+  });
+</script>
+
+</body>
+</html>
+
+
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -240,9 +282,6 @@ onSnapshot(gameStateDocRef, async (docSnap) => {
     })();
   });
 </script>
-
-
-
 
 
 </body>

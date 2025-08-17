@@ -1,0 +1,95 @@
+/* spinwheel.css */
+
+/* Center everything vertically and horizontally */
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  margin: 0;
+  padding: 2rem;
+  background-color: #111; /* dark background for casino look */
+  color: #fff;
+}
+
+/* Page title */
+h1 {
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #f1c40f; /* golden text for style */
+}
+
+/* Instructions above wheel */
+#instructions {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  text-align: center;
+}
+
+/* Wheel container */
+#wheelContainer {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+/* Canvas for the wheel */
+#wheelCanvas {
+  display: block;
+  margin: 0 auto;
+  background-color: #222;
+  border: 4px solid #f1c40f;
+  border-radius: 50%;
+  box-shadow: 
+    0 0 30px #f1c40f,  /* outer glow */
+    0 0 60px #e67e22 inset; /* inner glow */
+  transition: box-shadow 0.3s ease;
+}
+
+
+/* Pointer at the top of the wheel */
+#pointer {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; 
+  height: 0; 
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-bottom: 30px solid #e74c3c; /* red pointer */
+  z-index: 10;
+}
+
+/* Spin button */
+#spinBtn {
+  padding: 0.75rem 2rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background: #f1c40f;
+  color: #111;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#spinBtn:hover:not(:disabled) {
+  background: #e67e22;
+  transform: scale(1.05);
+}
+
+#spinBtn:disabled {
+  background: #555;
+  cursor: not-allowed;
+  color: #ccc;
+}
+
+/* Waiting message and forfeit text */
+#waitingMsg, #forfeit {
+  margin-top: 1rem;
+  font-size: 1.2rem;
+  text-align: center;
+}
+

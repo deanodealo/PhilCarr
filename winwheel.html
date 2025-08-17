@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spin the Wheel</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>Spin the Wheel</h1>
+<canvas id="wheelCanvas" width="380" height="380"></canvas>
+<p id="instructions">Waiting for host...</p>
+<div id="waitingMsg"></div>
+<div id="forfeit"></div>
+<button id="spinBtn" disabled>Spin the Wheel</button>
+
+<!-- Local JS libraries -->
+<!-- Winwheel + TweenMax (GSAP 2.x) -->
+<script src="js/Winwheel.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.3/TweenMax.min.js"></script>
+
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  onSnapshot,
+  updateDoc,
+  arrayUnion,
+  getDoc,
+  collection,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+  authDomain: "philcarr-20ac0.firebaseapp.com",
+  projectId: "philcarr-20ac0",
+  storageBucket: "philcarr-20ac0.appspot.com",
+  messagingSenderId: "770728636073",
+  appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+  measurementId: "G-XRCH682RNE"
+};
+
+// Initialize Firebase & Firestore
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// DOM elements
+const spinBtn = document.getElementById('spinBtn');
+const instructions = document.getElementById('instructions');
+const waitingMsg = document.getElementById('waitingMsg');
+const forfeitDiv = document.getElementById('forfeit');
+
+// URL params & player info
+const urlParams = new URLSearchParams(window.location.search);
+const roundNumber = parseInt(urlParams.get('round') || '1');
+const gameId = urlParams.get('gameId') || 'defaultGame';
+const playerName = localStorage.getItem('playerName') || 'Unknown Player';
+const gameDocRef = doc(db, 'games', gameId);
+
+// Forfeits
+const forfeits = ['Sing a song', 'Do 10 push-ups', 'Dance for 30 seconds', 'Tell a joke'];
+
+// Create Winwheel
+const theWheel = new Winwheel({
+  canvasId: 'wheelCanvas',
+  numSegments: forfeits.length,
+  outerRadius: 180,
+  textFontSize: 16,
+  segments: forfeits.map((t,i)=>({
+    fillStyle: ['#eae56f','#89f26e','#7de6ef','#e7706f'][i%4],
+    text: t
+  })),
+  animation: {
+    type: 'spinToStop',
+    duration: 5,
+    spins: 8,
+    callbackFinished: handleWinwheelResult
+  }
+});
+
+// Audio files
+const spinSound = new Audio('sound1.wav');   // plays during spin
+const stopSound = new Audio('sound2.wav');   // plays when wheel stops
+
+// Spin function
+function startSpin() {
+  spinSound.play();           // play spin sound immediately
+  spinBtn.disabled = true;
+  waitingMsg.textContent = `${playerName} is spinning...`;
+  forfeitDiv.textContent = '';
+  theWheel.stopAnimation(false);
+  theWheel.rotationAngle = 0;
+  theWheel.draw();
+  theWheel.startAnimation();
+}
+
+// Handle Winwheel result
+async function handleWinwheelResult(indicatedSegment) {
+  stopSound.play();           // play stop sound
+  const chosenForfeit = indicatedSegment.text;
+  forfeitDiv.textContent = `Forfeit: ${chosenForfeit}`;
+  waitingMsg.textContent = '';
+
+  const gameSnap = await getDoc(gameDocRef);
+  if (!gameSnap.exists()) return;
+  const data = gameSnap.data();
+  const spinsDone = data.spinsDone || [];
+
+  await updateDoc(gameDocRef, {
+    spinsDone: [...spinsDone, playerName],
+    currentSpinner: null,
+    forfeitResult: chosenForfeit
+  });
+}
+
+// Enable spin button initially
+async function updateSpinButton() {
+  const gameSnap = await getDoc(gameDocRef);
+  if (!gameSnap.exists()) return;
+
+  const data = gameSnap.data();
+  const spinEligiblePlayers = data.spinEligiblePlayers || [];
+  const spinsDone = data.spinsDone || [];
+  const currentSpinner = data.currentSpinner || null;
+
+  const canSpin = spinEligiblePlayers.includes(playerName) &&
+                  !spinsDone.includes(playerName) &&
+                  (currentSpinner === null || currentSpinner === playerName);
+
+  spinBtn.disabled = !canSpin;
+  instructions.textContent = `Players eligible to spin: ${spinEligiblePlayers.join(', ')}`;
+  waitingMsg.textContent = currentSpinner && currentSpinner !== playerName
+    ? `${currentSpinner} is spinning...`
+    : '';
+}
+
+
+// Single onSnapshot listener with error handler
+onSnapshot(gameDocRef, async (docSnap) => {
+  if (!docSnap.exists()) return;
+
+  const data = docSnap.data();
+
+  // Redirect if phase changes
+  if (data.phase === 'winners') {
+    window.location.href = `winners.html?gameId=${gameId}`;
+    return;
+  }
+
+  if (data.phase && data.phase !== `wheel${roundNumber}`) {
+    if (data.phase.startsWith('round')) {
+      const newRound = parseInt(data.phase.replace('round', ''), 10);
+      window.location.href = `round.html?round=${newRound}&gameId=${gameId}`;
+      return;
+    }
+  }
+
+  // Update spin button & forfeits
+  const playersFinishedRound = data.playersFinishedRound || [];
+  const spinEligiblePlayers = data.spinEligiblePlayers || [];
+  const spinsDone = data.spinsDone || [];
+  const currentSpinner = data.currentSpinner || null;
+  const forfeitResult = data.forfeitResult || '';
+
+  const normalizedPlayerName = playerName.trim().toLowerCase();
+  const normalizedSpinEligible = spinEligiblePlayers.map(p => p.trim().toLowerCase());
+
+  const canSpin = normalizedSpinEligible.includes(normalizedPlayerName) &&
+                  !spinsDone.includes(playerName) &&
+                  (currentSpinner === null || currentSpinner === playerName);
+
+  spinBtn.disabled = !canSpin;
+  waitingMsg.textContent = currentSpinner && currentSpinner !== playerName
+    ? `${currentSpinner} is spinning the wheel...`
+    : '';
+  forfeitDiv.textContent = forfeitResult ? `Forfeit: ${forfeitResult}` : '';
+  instructions.textContent = `Players eligible to spin: ${spinEligiblePlayers.join(', ')}`;
+}, (error) => {
+  console.error("Firestore listener error:", error);
+});
+
+// Event listener
+spinBtn.addEventListener('click', startSpin);
+
+// Initial button state
+updateSpinButton();
+</script>
+
+
+
+</body>
+</html>
