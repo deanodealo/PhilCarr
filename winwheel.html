@@ -8,17 +8,60 @@
 </head>
 <body>
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spin the Wheel</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
 <h1>Spin the Wheel</h1>
-<canvas id="wheelCanvas" width="380" height="380"></canvas>
+
+
+<!-- Wheel container -->
+<div id="wheelContainer" style="position: relative; width: 400px; height: 400px; margin: auto;">
+  <canvas id="wheelCanvas" width="400" height="400"></canvas>
+
+<div id="pointer" style="
+  position: absolute;
+  top: 10px;              /* adjust to sit above wheel */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-top: 30px solid red;  /* points down */
+  z-index: 10;
+"></div>
+
+
+
+</div>
+
+<!-- Spin button below -->
+<button id="spinBtn" style="display: block; margin: 20px auto;">Spin the Wheel</button>
+
 <p id="instructions">Waiting for host...</p>
 <div id="waitingMsg"></div>
 <div id="forfeit"></div>
-<button id="spinBtn" disabled>Spin the Wheel</button>
 
-<!-- Local JS libraries -->
-<!-- Winwheel + TweenMax (GSAP 2.x) -->
+
+
+<!-- JS Libraries -->
 <script src="js/Winwheel.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.3/TweenMax.min.js"></script>
+<script type="module" src="wheelScript.js"></script>
+
+</body>
+</html>
+
+
+
+
 
 
 <script type="module">
@@ -80,8 +123,13 @@ const theWheel = new Winwheel({
     duration: 5,
     spins: 8,
     callbackFinished: handleWinwheelResult
-  }
+  },
+  // Add this for pointer
+  drawMode: 'canvas',      // ensures it draws pointer
+  pointerAngle: 0,         // 0 degrees = top of wheel
+  pointerGuide: true        // draws the pointer automatically
 });
+
 
 // Audio files
 const spinSound = new Audio('sound1.wav');   // plays during spin
