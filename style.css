@@ -44,10 +44,18 @@ input[type="text"] {
 }
 
 button {
-  background-color: #10b981;
-  color: #fff;
+  padding: 0.75rem 2rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background: #f1c40f;
+  color: #111;
+  border: none;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: all 0.2s ease;
+
+  width: auto;        /* makes button width fit content */
+  max-width: 250px;   /* optional: cap max width */
 }
 
 button:hover {
@@ -187,4 +195,19 @@ button.answer:active {
   font-size: 1.2rem;
   color: #e74c3c; /* red-ish */
   margin-bottom: 15px;
+}
+
+#spinBtn {
+  padding: 0.75rem 2rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background: #f1c40f;
+  color: #111;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  width: auto;        /* makes button width fit content */
+  max-width: 250px;   /* optional: cap max width */
 }

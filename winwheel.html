@@ -63,7 +63,7 @@ const playerName = localStorage.getItem('playerName') || 'Unknown Player';
 const gameDocRef = doc(db, 'games', gameId);
 
 // Forfeits
-const forfeits = ['Sing a song', 'Do 10 push-ups', 'Dance for 30 seconds', 'Tell a joke'];
+const forfeits = ['Sing a song', 'Do 10 push-ups', 'Dance for 30 seconds', 'Tell a joke', 'Down it'];
 
 // Create Winwheel
 const theWheel = new Winwheel({
@@ -72,7 +72,7 @@ const theWheel = new Winwheel({
   outerRadius: 180,
   textFontSize: 16,
   segments: forfeits.map((t,i)=>({
-    fillStyle: ['#eae56f','#89f26e','#7de6ef','#e7706f'][i%4],
+    fillStyle: ['#eae56f','#89f26e','#7de6ef','#e7706f','#ff66ff'][i%5],
     text: t
   })),
   animation: {
