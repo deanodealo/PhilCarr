@@ -10,8 +10,8 @@
       margin: 0;
       padding: 2rem;
       font-family: 'Arial Black', Arial, sans-serif;
-      background: radial-gradient(circle at top, #111 0%, #000 100%);
-      color: #f9d71c;
+      background: radial-gradient(circle at top, #0ec9dd 0%, #000 100%);
+      color: #f91cac;
       text-align: center;
       overflow-x: hidden;
     }
@@ -20,7 +20,7 @@
       font-size: 3rem;
       margin-bottom: 1rem;
       text-transform: uppercase;
-      text-shadow: 0 0 10px #f9d71c, 0 0 20px #f1c40f, 0 0 30px #e67e22;
+      text-shadow: 0 0 10px #e910f1, 0 0 20px #f1c40f, 0 0 30px #e67e22;
       animation: glow 1.5s infinite alternate;
     }
 
@@ -37,25 +37,28 @@
       gap: 1rem;
     }
 
-    .player {
-      background: rgba(255, 255, 255, 0.05);
-      border: 2px solid #f9d71c;
-      border-radius: 15px;
-      padding: 1rem 2rem;
-      width: 300px;
-      font-size: 1.5rem;
-      font-weight: bold;
-      box-shadow: 0 0 15px #f9d71c, 0 0 30px #e67e22 inset;
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
+.player {
+  background: rgba(40, 129, 189, 0.05);
+  border: 2px solid #f9d71c;
+  border-radius: 15px;
+  padding: 1rem 2rem;
+  width: 90%;          /* responsive width */
+  max-width: 300px;    /* keep original width on larger screens */
+  font-size: 1.5rem;
+  font-weight: bold;
+  box-shadow: 0 0 15px #f9d71c, 0 0 30px #e67e22 inset;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-sizing: border-box;  /* includes padding & border in width */
+}
 
-    .player:first-child {
-      font-size: 2rem;
-      background: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 0 20px #f9d71c, 0 0 40px #e67e22 inset;
-      border-color: gold;
-      transform: scale(1.1);
-    }
+.player:first-child {
+  font-size: 2rem;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px #f9d71c, 0 0 40px #e67e22 inset;
+  border-color: gold;
+  transform: scale(1.05);  /* slightly less aggressive to fit mobile */
+}
+
 
     .player:hover {
       transform: scale(1.05);
@@ -79,7 +82,7 @@
   </style>
 </head>
 <body>
-  <h1>Quiz Winner & Final Leaderboard</h1>
+  <h1>Final Leaderboard</h1>
   <div id="leaderboard"></div>
 
   <script type="module">

@@ -42,25 +42,11 @@ h1 {
   border: 4px solid #f1c40f;
   border-radius: 50%;
   box-shadow: 
-    0 0 30px #f1c40f,  /* outer glow */
-    0 0 60px #e67e22 inset; /* inner glow */
+    0 0 30px #fc0303,  /* outer glow */
+    0 0 60px #f1c40f inset; /* inner glow */
   transition: box-shadow 0.3s ease;
 }
 
-
-/* Pointer at the top of the wheel */
-#pointer {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0; 
-  height: 0; 
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-bottom: 30px solid #e74c3c; /* red pointer */
-  z-index: 10;
-}
 
 /* Spin button */
 #spinBtn {
@@ -76,7 +62,7 @@ h1 {
 }
 
 #spinBtn:hover:not(:disabled) {
-  background: #e67e22;
+  background: #fb0202;
   transform: scale(1.05);
 }
 
