@@ -11,10 +11,11 @@
   <h1>Spin the Wheel</h1>
 
   <!-- Wheel container -->
-  <div id="wheelContainer">
-    <canvas id="wheelCanvas"></canvas>
-    <div id="pointer"></div>
-  </div>
+<div id="wheelContainer">
+  <canvas id="wheelCanvas"></canvas>
+  <div id="pointer"></div>
+</div>
+
 
   <!-- Spin button below -->
   <button id="spinBtn">Spin the Wheel</button>
@@ -79,16 +80,23 @@ const playerName = localStorage.getItem('playerName') || 'Unknown Player';
 const gameDocRef = doc(db, 'games', gameId);
 
 // Forfeits
-const forfeits = ['Impression of Phil', 'Down a shot', 'Only song titles', 'Take the Pot', 'Shout I Love Phil'];
+const forfeits = ['Phil Impression', 'Down a shot', 'Only song titles', 'Take the Pot', 'Shout I Love Phil'];
 
-// Create Winwheel
+// Get canvas and size it to match CSS
+const canvas = document.getElementById('wheelCanvas');
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
+
+const radius = canvas.width / 2 - 10; // leave some padding
+
+// Create Winwheel with responsive sizing
 const theWheel = new Winwheel({
   canvasId: 'wheelCanvas',
   numSegments: forfeits.length,
-  outerRadius: 180,
-  textFontSize: 16,
-  segments: forfeits.map((t,i)=>({
-    fillStyle: ['#eae56f','#89f26e','#7de6ef','#e7706f','#ff66ff'][i%5],
+  outerRadius: radius,
+  textFontSize: Math.floor(canvas.width / 20), // scale text
+  segments: forfeits.map((t, i) => ({
+    fillStyle: ['#eae56f','#89f26e','#7de6ef','#e7706f','#ff66ff'][i % 5],
     text: t
   })),
   animation: {
@@ -97,11 +105,11 @@ const theWheel = new Winwheel({
     spins: 8,
     callbackFinished: handleWinwheelResult
   },
-  // Add this for pointer
-  drawMode: 'canvas',      // ensures it draws pointer
-  pointerAngle: 0,         // 0 degrees = top of wheel
-  pointerGuide: true        // draws the pointer automatically
+  drawMode: 'canvas',
+  pointerAngle: 0,
+  pointerGuide: true
 });
+
 
 
 // Audio files
