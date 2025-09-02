@@ -29,9 +29,13 @@ h1 {
 }
 
 /* Wheel container */
-#wheelContainer {
+#wheel-container {
   position: relative;
-  margin-bottom: 1rem;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* Centers horizontally */
+  align-items: center;     /* Optional: also center vertically if full height */
+  overflow-x: hidden;      /* Prevents horizontal scrolling */
 }
 
 /* Canvas for the wheel */
