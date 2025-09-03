@@ -5,9 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Quiz Host Control</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-    button { margin: 5px 0; padding: 10px 15px; font-size: 16px; cursor: pointer; }
-    #status { margin-top: 15px; }
+body {
+  font-family: Arial, sans-serif;
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+div {
+  margin-bottom: 20px;
+}
+
+button {
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  background: #007bff;
+  color: white;
+  transition: background 0.2s ease;
+}
+
+button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+#status {
+  margin-top: 15px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Make sure text scales nicely on mobile */
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+  h1 {
+    font-size: 1.2rem;
+  }
+  button {
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -22,6 +77,8 @@
   <button id="startRoundBtn">Start Round 1</button>
   <button id="goToWheelBtn" disabled>Go to Wheel</button>
   <button id="nextRoundBtn" disabled>Next Round</button>
+ 
+  <button id="resetBtn">Reset Game</button>
 
   <div id="status"></div>
 
@@ -34,7 +91,9 @@
     updateDoc, 
     collection, 
     getDocs, 
-    getDoc
+    getDoc,
+    deleteField,
+    deleteDoc
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -216,7 +275,40 @@ nextRoundBtn.addEventListener('click', async () => {
   }
 });
 
-</script>
+
+
+// reset game 
+async function resetGame() {
+  try {
+    await updateDoc(gameDocRef, {
+      currentSpinner: deleteField(),
+      forfeitResult: deleteField(),
+      playersFinishedRound: deleteField(),
+      spinEligiblePlayers: deleteField(),
+      spinsDone: deleteField(),
+      phase: deleteField(),  
+      round: deleteField(), 
+    });
+
+    const snapshot = await getDocs(playersCollectionRef);
+    for (const playerDoc of snapshot.docs) {
+      await deleteDoc(doc(db, "players", playerDoc.id));
+    }
+
+    statusDiv.textContent = "✅ Game reset complete.";
+  } catch (err) {
+    console.error("Reset failed:", err);
+    statusDiv.textContent = "❌ Error: " + err.message;
+  }
+}
+
+// ✅ Attach the button
+const resetBtn = document.getElementById("resetBtn");
+resetBtn.addEventListener("click", resetGame);
+
+
+
+  </script>
 
 </body>
 </html>
