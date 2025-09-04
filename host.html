@@ -189,51 +189,61 @@ button:hover:not(:disabled) {
     }
   });
 
-  // Go To Wheel button
-  goToWheelBtn.addEventListener('click', async () => {
-    try {
-      const gameSnap = await getDoc(gameDocRef);
-      let roundFromDb = 1;
-      let playersFinished = [];
+// Go To Wheel button
+goToWheelBtn.addEventListener('click', async () => {
+  try {
+    const gameSnap = await getDoc(gameDocRef);
+    let roundFromDb = 1;
+    let playersFinished = [];
 
-      if (gameSnap.exists()) {
-        const gameData = gameSnap.data();
-        roundFromDb = gameData.round || 1;
-        playersFinished = gameData.playersFinishedRound || [];
-      }
-
-      if (playersFinished.length === 0) {
-        statusDiv.textContent = 'No players finished the round yet.';
-        return;
-      }
-
-      // Fetch player scores for those who finished
-      const playersScores = await Promise.all(
-        playersFinished.map(async playerName => {
-          const playerDocRef = doc(db, 'players', playerName);
-          const playerSnap = await getDoc(playerDocRef);
-          return playerSnap.exists() ? { name: playerName, score: playerSnap.data().score || 0 } : { name: playerName, score: 0 };
-        })
-      );
-
-      const minScore = Math.min(...playersScores.map(p => p.score));
-      const lowestScorers = playersScores.filter(p => p.score === minScore).map(p => p.name);
-
-      await updateDoc(gameDocRef, {
-        phase: `wheel${roundFromDb}`,
-        round: roundFromDb,
-        spinEligiblePlayers: lowestScorers,
-        spinsDone: [],
-        currentSpinner: null,
-        forfeitResult: null,
-      });
-
-      statusDiv.textContent = `Moved to wheel phase for round ${roundFromDb}. Eligible spinner(s): ${lowestScorers.join(', ')}`;
-    } catch (e) {
-      statusDiv.textContent = 'Error going to wheel: ' + e.message;
-      console.error(e);
+    if (gameSnap.exists()) {
+      const gameData = gameSnap.data();
+      roundFromDb = gameData.round || 1;
+      playersFinished = gameData.playersFinishedRound || [];
     }
-  });
+
+    if (playersFinished.length === 0) {
+      statusDiv.textContent = 'No players finished the round yet.';
+      return;
+    }
+
+    // Fetch current round scores for those who finished
+    const playersScores = await Promise.all(
+      playersFinished.map(async playerName => {
+        const playerDocRef = doc(db, 'players', playerName);
+        const playerSnap = await getDoc(playerDocRef);
+
+        if (playerSnap.exists()) {
+          const data = playerSnap.data();
+          const roundScore = data.roundScores?.[roundFromDb] ?? 0; // get just this round
+          return { name: playerName, score: roundScore };
+        } else {
+          return { name: playerName, score: 0 };
+        }
+      })
+    );
+
+    const minScore = Math.min(...playersScores.map(p => p.score));
+    const lowestScorers = playersScores
+      .filter(p => p.score === minScore)
+      .map(p => p.name);
+
+    await updateDoc(gameDocRef, {
+      phase: `wheel${roundFromDb}`,
+      round: roundFromDb,
+      spinEligiblePlayers: lowestScorers,
+      spinsDone: [],
+      currentSpinner: null,
+      forfeitResult: null,
+    });
+
+    statusDiv.textContent = `Moved to wheel phase for round ${roundFromDb}. Eligible spinner(s): ${lowestScorers.join(', ')}`;
+  } catch (e) {
+    statusDiv.textContent = 'Error going to wheel: ' + e.message;
+    console.error(e);
+  }
+});
+
 
 // Next Round button
 nextRoundBtn.addEventListener('click', async () => {
