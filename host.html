@@ -66,6 +66,22 @@ button:hover:not(:disabled) {
   </style>
 </head>
 <body>
+
+<script type="module">
+  // Preload leaderboard sound for mobile devices
+  const leaderboardSound = new Audio('leaderboard.mp3');
+  leaderboardSound.preload = 'auto';
+
+  // Unlock audio on first user interaction (needed for iOS/Android)
+  function unlockAudio() {
+    leaderboardSound.play().then(() => leaderboardSound.pause());
+    leaderboardSound.currentTime = 0;
+    document.body.removeEventListener('touchstart', unlockAudio);
+  }
+
+  document.body.addEventListener('touchstart', unlockAudio, { once: true });
+</script>
+
   <h1>Quiz Host Control</h1>
   <div>
     <p>Current Phase: <span id="currentPhase">Loading...</span></p>
@@ -123,9 +139,17 @@ button:hover:not(:disabled) {
   const statusDiv = document.getElementById('status');
 
   let currentPhase = null;
-  let currentRound = 0;  // This tracks the current round number dynamically
+  let currentRound = 0;
   let totalPlayers = 0;
   let playersFinishedRound = [];
+
+  // 🔊 Leaderboard sound
+  const leaderboardSound = new Audio('leaderboard.mp3');
+  leaderboardSound.load();
+  // Unlock sound on mobile
+  document.body.addEventListener('touchstart', () => {
+    leaderboardSound.play().then(() => leaderboardSound.pause());
+  }, { once: true });
 
   async function fetchTotalPlayers() {
     const snapshot = await getDocs(playersCollectionRef);
@@ -142,7 +166,7 @@ button:hover:not(:disabled) {
     const data = docSnap.data();
 
     currentPhase = data.phase || 'Not started';
-    currentRound = data.round || 0;  // IMPORTANT: use data.round, not currentRound!
+    currentRound = data.round || 0;
     playersFinishedRound = data.playersFinishedRound || [];
 
     currentPhaseSpan.textContent = currentPhase;
@@ -189,151 +213,127 @@ button:hover:not(:disabled) {
     }
   });
 
-// Go To Wheel button
-goToWheelBtn.addEventListener('click', async () => {
-  try {
-    const gameSnap = await getDoc(gameDocRef);
-    let roundFromDb = 1;
-    let playersFinished = [];
+  // Go To Wheel button
+  goToWheelBtn.addEventListener('click', async () => {
+    try {
+      const gameSnap = await getDoc(gameDocRef);
+      let roundFromDb = 1;
+      let playersFinished = [];
 
-    if (gameSnap.exists()) {
-      const gameData = gameSnap.data();
-      roundFromDb = gameData.round || 1;
-      playersFinished = gameData.playersFinishedRound || [];
-    }
+      if (gameSnap.exists()) {
+        const gameData = gameSnap.data();
+        roundFromDb = gameData.round || 1;
+        playersFinished = gameData.playersFinishedRound || [];
+      }
 
-    if (playersFinished.length === 0) {
-      statusDiv.textContent = 'No players finished the round yet.';
-      return;
-    }
+      if (playersFinished.length === 0) {
+        statusDiv.textContent = 'No players finished the round yet.';
+        return;
+      }
 
-    // Fetch current round scores for those who finished
-    const playersScores = await Promise.all(
-      playersFinished.map(async (playerName) => {
-        const playerDocRef = doc(db, 'players', playerName);
-        const playerSnap = await getDoc(playerDocRef);
+      const playersScores = await Promise.all(
+        playersFinished.map(async (playerName) => {
+          const playerDocRef = doc(db, 'players', playerName);
+          const playerSnap = await getDoc(playerDocRef);
+          if (playerSnap.exists()) {
+            const data = playerSnap.data();
+            const roundScore = data.roundScores?.[roundFromDb] ?? 0;
+            return { name: playerName, score: roundScore };
+          } else {
+            return { name: playerName, score: 0 };
+          }
+        })
+      );
 
-        if (playerSnap.exists()) {
-          const data = playerSnap.data();
-          console.log(
-            'Round from DB:',
-            roundFromDb,
-            'Player:',
-            playerName,
-            'All RoundScores:',
-            data.roundScores,
-            'Picked Score:',
-            data.roundScores?.[roundFromDb]
-          );
-
-          const roundScore = data.roundScores?.[roundFromDb] ?? 0;
-          return { name: playerName, score: roundScore };
-        } else {
-          return { name: playerName, score: 0 };
-        }
-      })
-    );
-
-    // ✅ Calculate lowest scorers here
-    const minScore = Math.min(...playersScores.map(p => p.score));
-    const lowestScorers = playersScores
-      .filter(p => p.score === minScore)
-      .map(p => p.name);
-
-    // Update game doc with wheel phase
-    await updateDoc(gameDocRef, {
-      phase: `wheel${roundFromDb}`,
-      round: roundFromDb,
-      spinEligiblePlayers: lowestScorers,
-      spinsDone: [],
-      currentSpinner: null,
-      forfeitResult: null,
-    });
-
-    statusDiv.textContent = `Moved to wheel phase for round ${roundFromDb}. Eligible spinner(s): ${lowestScorers.join(', ')}`;
-
-  } catch (e) {
-    statusDiv.textContent = 'Error going to wheel: ' + e.message;
-    console.error(e);
-  }
-});
-
-
-
-// Next Round button
-nextRoundBtn.addEventListener('click', async () => {
-  try {
-    if (currentRound === 5) {
-      // ✅ Final round finished — go to winners
-      console.log('Final round complete, moving to winners page');
-      await updateDoc(gameDocRef, {
-        phase: 'winners',
-        round: currentRound, // stays at 5
-        playersFinishedRound: [],
-        spinEligiblePlayers: [],
-        spinsDone: [],
-        currentSpinner: null,
-        forfeitResult: null,
-      });
-      statusDiv.textContent = 'Quiz ended. Showing winners.';
-    } else {
-      // Normal round progression
-      const nextRound = currentRound + 1;
-      console.log(`Advancing to round ${nextRound}`);
+      const minScore = Math.min(...playersScores.map(p => p.score));
+      const lowestScorers = playersScores
+        .filter(p => p.score === minScore)
+        .map(p => p.name);
 
       await updateDoc(gameDocRef, {
-        phase: `round${nextRound}`,
-        round: nextRound,
-        playersFinishedRound: [],
-        spinEligiblePlayers: [],
+        phase: `wheel${roundFromDb}`,
+        round: roundFromDb,
+        spinEligiblePlayers: lowestScorers,
         spinsDone: [],
         currentSpinner: null,
         forfeitResult: null,
       });
 
-      console.log(`Successfully moved to round ${nextRound}`);
-      statusDiv.textContent = `Moved to round ${nextRound}.`;
+      statusDiv.textContent = `Moved to wheel phase for round ${roundFromDb}. Eligible spinner(s): ${lowestScorers.join(', ')}`;
+
+    } catch (e) {
+      statusDiv.textContent = 'Error going to wheel: ' + e.message;
+      console.error(e);
     }
-  } catch (e) {
-    console.error('Error starting next round:', e);
-    statusDiv.textContent = 'Error starting next round: ' + e.message;
-  }
-});
+  });
 
+  // Next Round button
+  nextRoundBtn.addEventListener('click', async () => {
+    try {
+      if (currentRound === 5) {
+        // 🔊 Play leaderboard sound
+        leaderboardSound.currentTime = 0;
+        leaderboardSound.play().catch(err => console.log('Sound play failed:', err));
 
-
-// reset game 
-async function resetGame() {
-  try {
-    await updateDoc(gameDocRef, {
-      currentSpinner: deleteField(),
-      forfeitResult: deleteField(),
-      playersFinishedRound: deleteField(),
-      spinEligiblePlayers: deleteField(),
-      spinsDone: deleteField(),
-      phase: deleteField(),  
-      round: deleteField(), 
-    });
-
-    const snapshot = await getDocs(playersCollectionRef);
-    for (const playerDoc of snapshot.docs) {
-      await deleteDoc(doc(db, "players", playerDoc.id));
+        // Final round — go to winners/leaderboard
+        await updateDoc(gameDocRef, {
+          phase: 'winners',
+          round: currentRound,
+          playersFinishedRound: [],
+          spinEligiblePlayers: [],
+          spinsDone: [],
+          currentSpinner: null,
+          forfeitResult: null,
+        });
+        statusDiv.textContent = 'Quiz ended. Showing winners.';
+      } else {
+        const nextRound = currentRound + 1;
+        await updateDoc(gameDocRef, {
+          phase: `round${nextRound}`,
+          round: nextRound,
+          playersFinishedRound: [],
+          spinEligiblePlayers: [],
+          spinsDone: [],
+          currentSpinner: null,
+          forfeitResult: null,
+        });
+        statusDiv.textContent = `Moved to round ${nextRound}.`;
+      }
+    } catch (e) {
+      console.error('Error starting next round:', e);
+      statusDiv.textContent = 'Error starting next round: ' + e.message;
     }
+  });
 
-    statusDiv.textContent = "✅ Game reset complete.";
-  } catch (err) {
-    console.error("Reset failed:", err);
-    statusDiv.textContent = "❌ Error: " + err.message;
+  // Reset game
+  async function resetGame() {
+    try {
+      await updateDoc(gameDocRef, {
+        currentSpinner: deleteField(),
+        forfeitResult: deleteField(),
+        playersFinishedRound: deleteField(),
+        spinEligiblePlayers: deleteField(),
+        spinsDone: deleteField(),
+        phase: deleteField(),
+        round: deleteField(),
+      });
+
+      const snapshot = await getDocs(playersCollectionRef);
+      for (const playerDoc of snapshot.docs) {
+        await deleteDoc(doc(db, "players", playerDoc.id));
+      }
+
+      statusDiv.textContent = "✅ Game reset complete.";
+    } catch (err) {
+      console.error("Reset failed:", err);
+      statusDiv.textContent = "❌ Error: " + err.message;
+    }
   }
-}
 
-// ✅ Attach the button
-const resetBtn = document.getElementById("resetBtn");
-resetBtn.addEventListener("click", resetGame);
+  const resetBtn = document.getElementById("resetBtn");
+  resetBtn.addEventListener("click", resetGame);
+</script>
 
-
-
-  </script>
 
 </body>
 </html>
