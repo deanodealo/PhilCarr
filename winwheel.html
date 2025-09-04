@@ -34,10 +34,6 @@
 
 
 
-
-
-
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
@@ -116,12 +112,23 @@ const theWheel = new Winwheel({
 const spinSound = new Audio('sound1.wav');   // plays during spin
 const stopSound = new Audio('sound2.wav');   // plays when wheel stops
 
+// Preload sounds
+spinSound.load();
+stopSound.load();
+
+// Mobile unlock: allow stopSound to play after first touch/click
+document.body.addEventListener('touchstart', () => {
+  stopSound.play().then(() => stopSound.pause());
+}, { once: true });
+
 // Spin function
 function startSpin() {
+  spinSound.currentTime = 0;
   spinSound.play();           // play spin sound immediately
   spinBtn.disabled = true;
   waitingMsg.textContent = `${playerName} is spinning...`;
   forfeitDiv.textContent = '';
+
   theWheel.stopAnimation(false);
   theWheel.rotationAngle = 0;
   theWheel.draw();
@@ -130,7 +137,9 @@ function startSpin() {
 
 // Handle Winwheel result
 async function handleWinwheelResult(indicatedSegment) {
-  stopSound.play();           // play stop sound
+  stopSound.currentTime = 0;
+  stopSound.play();           // play stop sound after wheel finishes
+
   const chosenForfeit = indicatedSegment.text;
   forfeitDiv.textContent = `Forfeit: ${chosenForfeit}`;
   waitingMsg.textContent = '';
@@ -146,6 +155,7 @@ async function handleWinwheelResult(indicatedSegment) {
     forfeitResult: chosenForfeit
   });
 }
+
 
 // Enable spin button initially
 async function updateSpinButton() {
