@@ -24,48 +24,48 @@
 <div id="status"></div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, updateDoc, arrayUnion, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
-    authDomain: "philcarr-20ac0.firebaseapp.com",
-    projectId: "philcarr-20ac0",
-    storageBucket: "philcarr-20ac0.firebasestorage.app",
-    messagingSenderId: "770728636073",
-    appId: "1:770728636073:web:d2bddbee786446c37d03b8",
-    measurementId: "G-XRCH682RNE"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyAZxLjMZTYTOLBunk56HqyHkLyPJsQUtjA",
+  authDomain: "philcarr-20ac0.firebaseapp.com",
+  projectId: "philcarr-20ac0",
+  storageBucket: "philcarr-20ac0.firebasestorage.app",
+  messagingSenderId: "770728636073",
+  appId: "1:770728636073:web:d2bddbee786446c37d03b8",
+  measurementId: "G-XRCH682RNE"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const roundNumber = parseInt(urlParams.get('round')) || 1;
-  const gameId = urlParams.get('gameId') || 'defaultGame';
+const urlParams = new URLSearchParams(window.location.search);
+const roundNumber = parseInt(urlParams.get('round')) || 1;
+const gameId = urlParams.get('gameId') || 'defaultGame';
 
-  const roundNumberEl = document.getElementById('roundNumber');
-  const questionText = document.getElementById('questionText');
-  const answersContainer = document.getElementById('answersContainer');
-  const nextBtn = document.getElementById('nextBtn');
-  const feedback = document.getElementById('feedback');
-  const statusDiv = document.getElementById('status'); // Add a status div to show waiting messages
+const roundNumberEl = document.getElementById('roundNumber');
+const questionText = document.getElementById('questionText');
+const answersContainer = document.getElementById('answersContainer');
+const nextBtn = document.getElementById('nextBtn');
+const feedback = document.getElementById('feedback');
+const statusDiv = document.getElementById('status');
 
-  roundNumberEl.textContent = roundNumber;
+roundNumberEl.textContent = roundNumber;
 
-  let questions = [];
-  let currentQuestionIndex = 0;
-  let score = 0;
-  let answered = false;
-  let roundFinished = false;
+let questions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+let answered = false;
+let roundFinished = false;
 
-  const playerName = localStorage.getItem('playerName');
-  if (!playerName) {
-    alert("Player not found, please return to homepage and enter your name.");
-    window.location.href = "index.html";
-  }
+const playerName = localStorage.getItem('playerName');
+if (!playerName) {
+  alert("Player not found, please return to homepage and enter your name.");
+  window.location.href = "index.html";
+}
 
-  const gameDocRef = doc(db, 'games', gameId);
+const gameDocRef = doc(db, 'games', gameId);
 
 // Listen for host-controlled phase & round changes
 onSnapshot(gameDocRef, (docSnap) => {
@@ -75,7 +75,6 @@ onSnapshot(gameDocRef, (docSnap) => {
   const hostRound = data.round || 1;
 
   if (phase === 'questions' && hostRound === roundNumber) {
-    // Stay on this page and allow answering
     if (roundFinished) {
       statusDiv.textContent = 'Waiting for host to move to next phase...';
       nextBtn.style.display = 'none';
@@ -94,133 +93,143 @@ onSnapshot(gameDocRef, (docSnap) => {
     setTimeout(() => {
       window.location.href = `winners.html?gameId=${gameId}`;
     }, 0);
-    return;
   } else if (hostRound !== roundNumber) {
-    // Round changed, redirect to new round
     window.location.href = `round.html?round=${hostRound}&gameId=${gameId}`;
   }
 });
 
+// Load questions for this round
+async function loadQuestions() {
+  try {
+    const roundDocRef = doc(db, 'rounds', `round${roundNumber}`);
+    const roundSnap = await getDoc(roundDocRef);
 
-  async function loadQuestions() {
-    try {
-      const roundDocRef = doc(db, 'rounds', `round${roundNumber}`);
-      const roundSnap = await getDoc(roundDocRef);
-
-      if (!roundSnap.exists()) {
-        questionText.textContent = 'Round data not found.';
-        return;
-      }
-
-      const roundData = roundSnap.data();
-
-      if (!roundData.questions || !Array.isArray(roundData.questions)) {
-        questionText.textContent = 'No questions found for this round.';
-        return;
-      }
-
-      questions = roundData.questions;
-      showQuestion();
-
-    } catch (error) {
-      console.error('Error loading questions:', error);
-      questionText.textContent = 'Failed to load questions.';
-    }
-  }
-
-  function showQuestion() {
-    answered = false;
-    feedback.textContent = '';
-    nextBtn.disabled = true;
-
-    if (currentQuestionIndex >= questions.length) {
-      questionText.textContent = `Round Complete! Your score this round: ${score} / ${questions.length}`;
-      answersContainer.innerHTML = '';
-      nextBtn.textContent = 'Finish Round';
-      nextBtn.disabled = false;
-
-      nextBtn.onclick = async () => {
-        try {
-          if (roundFinished) return; // prevent double finish
-          roundFinished = true;
-
-          // 1. Increment player's total score by this round's score
-          const playerDocRef = doc(db, 'players', playerName);
-          await updateDoc(playerDocRef, {
-            score: increment(score),
-            currentRound: roundNumber + 1
-          });
-
-          // 2. Mark this player as finished for this round in the game doc
-          const gameDocRefPlayersFinished = doc(db, 'games', gameId);
-          await updateDoc(gameDocRefPlayersFinished, {
-            playersFinishedRound: arrayUnion(playerName)
-          });
-
-          // Instead of redirecting here, wait for host to update phase
-          statusDiv.textContent = 'Round finished! Waiting for host to move to next phase...';
-          nextBtn.style.display = 'none';
-
-        } catch (e) {
-          alert("Error saving progress: " + e.message);
-          console.error(e);
-        }
-      };
+    if (!roundSnap.exists()) {
+      questionText.textContent = 'Round data not found.';
       return;
     }
 
-    const currentQ = questions[currentQuestionIndex];
-    questionText.textContent = currentQ.question;
+    const roundData = roundSnap.data();
 
+    if (!roundData.questions || !Array.isArray(roundData.questions) || roundData.questions.length === 0) {
+      questionText.textContent = 'No questions found for this round.';
+      return;
+    }
+
+    questions = roundData.questions;
+    currentQuestionIndex = 0;
+    score = 0;
+    roundFinished = false;
+
+    showQuestion();
+  } catch (error) {
+    console.error('Error loading questions:', error);
+    questionText.textContent = 'Failed to load questions.';
+  }
+}
+
+// Show the current question
+function showQuestion() {
+  answered = false;
+  feedback.textContent = '';
+  nextBtn.disabled = true;
+
+  // All questions answered
+  if (currentQuestionIndex >= questions.length) {
+    questionText.textContent = `Round Complete! Your score this round: ${score} / ${questions.length}`;
     answersContainer.innerHTML = '';
-
-    currentQ.answers.forEach((answer, idx) => {
-      const btn = document.createElement('button');
-      btn.textContent = answer;
-      btn.className = 'answerBtn';
-      btn.onclick = () => selectAnswer(idx, currentQ.correct);
-      answersContainer.appendChild(btn);
-    });
-  }
-
-  async function selectAnswer(selectedIdx, correctIdx) {
-    if (answered) return;
-    answered = true;
-
-    if (selectedIdx === correctIdx) {
-      score++;
-      feedback.textContent = 'Correct!';
-      feedback.style.color = 'green';
-    } else {
-      feedback.textContent = `Wrong! Correct answer: ${questions[currentQuestionIndex].answers[correctIdx]}`;
-      feedback.style.color = 'red';
-    }
-
-    Array.from(answersContainer.children).forEach(btn => btn.disabled = true);
-
+    nextBtn.textContent = 'Finish Round';
     nextBtn.disabled = false;
-    nextBtn.textContent = (currentQuestionIndex < questions.length - 1) ? 'Next Question' : 'Finish Round';
 
-    // Save answer to Firestore player doc (optional)
-    try {
-      const playerDocRef = doc(db, 'players', playerName);
-      const answerField = `answers.round${roundNumber}.question${currentQuestionIndex}`;
-      await updateDoc(playerDocRef, {
-        [answerField]: selectedIdx
-      });
-      console.log(`Saved answer for question ${currentQuestionIndex + 1} as option ${selectedIdx}`);
-    } catch (error) {
-      console.error('Failed to save answer:', error);
-    }
+    // ✅ Set click handler for finishing the round
+    nextBtn.onclick = async () => {
+      try {
+        if (roundFinished) return;
+        roundFinished = true;
 
-    nextBtn.onclick = () => {
-      currentQuestionIndex++;
-      showQuestion();
+        const playerDocRef = doc(db, 'players', playerName);
+        const gameDocRefPlayersFinished = doc(db, 'games', gameId);
+
+        await updateDoc(playerDocRef, {
+          [`roundScores.${roundNumber}`]: score,
+          score: increment(score),
+          currentRound: roundNumber + 1
+        });
+
+        await updateDoc(gameDocRefPlayersFinished, {
+          playersFinishedRound: arrayUnion(playerName)
+        });
+
+        statusDiv.textContent = 'Round finished! Waiting for host to move to next phase...';
+        nextBtn.style.display = 'none';
+      } catch (e) {
+        alert("Error saving progress: " + e.message);
+        console.error(e);
+      }
     };
+
+    return; // 🔑 exit here so we don't try to show a question
   }
 
-  loadQuestions();
+  // Display current question
+  const currentQ = questions[currentQuestionIndex];
+  questionText.textContent = currentQ.question;
+  answersContainer.innerHTML = '';
+
+  currentQ.answers.forEach((answer, idx) => {
+    const btn = document.createElement('button');
+    btn.textContent = answer;
+    btn.className = 'answerBtn';
+    btn.onclick = () => selectAnswer(idx, currentQ.correct);
+    answersContainer.appendChild(btn);
+  });
+
+  nextBtn.disabled = true;
+}
+
+
+// Handle answer selection
+async function selectAnswer(selectedIdx, correctIdx) {
+  if (answered) return;
+  answered = true;
+
+  const currentQ = questions[currentQuestionIndex];
+
+  if (selectedIdx === correctIdx) {
+    score++;
+    feedback.textContent = 'Correct!';
+    feedback.style.color = 'green';
+  } else {
+    feedback.textContent = `Wrong! Correct answer: ${currentQ.answers[correctIdx]}`;
+    feedback.style.color = 'red';
+  }
+
+  Array.from(answersContainer.children).forEach(btn => btn.disabled = true);
+
+  nextBtn.disabled = false;
+  nextBtn.textContent = (currentQuestionIndex < questions.length - 1) ? 'Next Question' : 'Finish Round';
+
+  // Save answer to Firestore
+  try {
+    const playerDocRef = doc(db, 'players', playerName);
+    const answerField = `answers.round${roundNumber}.question${currentQuestionIndex}`;
+    await updateDoc(playerDocRef, {
+      [answerField]: selectedIdx
+    });
+    console.log(`Saved answer for question ${currentQuestionIndex + 1} as option ${selectedIdx}`);
+  } catch (error) {
+    console.error('Failed to save answer:', error);
+  }
+
+  nextBtn.onclick = () => {
+    currentQuestionIndex++;
+    showQuestion();
+  };
+}
+
+loadQuestions();
 </script>
+
 
 
 </body>

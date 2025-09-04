@@ -209,13 +209,24 @@ goToWheelBtn.addEventListener('click', async () => {
 
     // Fetch current round scores for those who finished
     const playersScores = await Promise.all(
-      playersFinished.map(async playerName => {
+      playersFinished.map(async (playerName) => {
         const playerDocRef = doc(db, 'players', playerName);
         const playerSnap = await getDoc(playerDocRef);
 
         if (playerSnap.exists()) {
           const data = playerSnap.data();
-          const roundScore = data.roundScores?.[roundFromDb] ?? 0; // get just this round
+          console.log(
+            'Round from DB:',
+            roundFromDb,
+            'Player:',
+            playerName,
+            'All RoundScores:',
+            data.roundScores,
+            'Picked Score:',
+            data.roundScores?.[roundFromDb]
+          );
+
+          const roundScore = data.roundScores?.[roundFromDb] ?? 0;
           return { name: playerName, score: roundScore };
         } else {
           return { name: playerName, score: 0 };
@@ -223,11 +234,13 @@ goToWheelBtn.addEventListener('click', async () => {
       })
     );
 
+    // ✅ Calculate lowest scorers here
     const minScore = Math.min(...playersScores.map(p => p.score));
     const lowestScorers = playersScores
       .filter(p => p.score === minScore)
       .map(p => p.name);
 
+    // Update game doc with wheel phase
     await updateDoc(gameDocRef, {
       phase: `wheel${roundFromDb}`,
       round: roundFromDb,
@@ -238,11 +251,13 @@ goToWheelBtn.addEventListener('click', async () => {
     });
 
     statusDiv.textContent = `Moved to wheel phase for round ${roundFromDb}. Eligible spinner(s): ${lowestScorers.join(', ')}`;
+
   } catch (e) {
     statusDiv.textContent = 'Error going to wheel: ' + e.message;
     console.error(e);
   }
 });
+
 
 
 // Next Round button
