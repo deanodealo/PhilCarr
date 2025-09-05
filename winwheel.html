@@ -138,11 +138,14 @@ function startSpin() {
 // Handle Winwheel result
 async function handleWinwheelResult(indicatedSegment) {
   stopSound.currentTime = 0;
-  stopSound.play();           // play stop sound after wheel finishes
+  stopSound.play(); // play stop sound after wheel finishes
 
   const chosenForfeit = indicatedSegment.text;
   forfeitDiv.textContent = `Forfeit: ${chosenForfeit}`;
   waitingMsg.textContent = '';
+
+  // ✅ Smooth scroll to the forfeit div once text is set
+  forfeitDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const gameSnap = await getDoc(gameDocRef);
   if (!gameSnap.exists()) return;
@@ -155,6 +158,7 @@ async function handleWinwheelResult(indicatedSegment) {
     forfeitResult: chosenForfeit
   });
 }
+
 
 
 // Enable spin button initially
