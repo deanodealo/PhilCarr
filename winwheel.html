@@ -138,15 +138,28 @@ function startSpin() {
 // Handle Winwheel result
 async function handleWinwheelResult(indicatedSegment) {
   stopSound.currentTime = 0;
-  stopSound.play(); // play stop sound after wheel finishes
+  stopSound.play();
 
   const chosenForfeit = indicatedSegment.text;
   forfeitDiv.textContent = `Forfeit: ${chosenForfeit}`;
   waitingMsg.textContent = '';
 
-  // ✅ Smooth scroll to the forfeit div once text is set
-  forfeitDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // ✅ Dynamic scroll adjustment for Safari bottom bar
+  const rect = forfeitDiv.getBoundingClientRect();
+  const absoluteY = rect.top + window.scrollY;
 
+  // Space available in viewport
+  const viewportHeight = window.innerHeight;
+
+  // If the forfeit text is too low, scroll up so it’s nicely visible
+  const targetY = absoluteY - (viewportHeight / 3); // keeps it ~1/3 down the screen
+
+  window.scrollTo({
+    top: targetY,
+    behavior: 'smooth'
+  });
+
+  // Firestore update
   const gameSnap = await getDoc(gameDocRef);
   if (!gameSnap.exists()) return;
   const data = gameSnap.data();
@@ -158,6 +171,7 @@ async function handleWinwheelResult(indicatedSegment) {
     forfeitResult: chosenForfeit
   });
 }
+
 
 
 
