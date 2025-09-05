@@ -82,6 +82,24 @@
   </style>
 </head>
 <body>
+
+<body>
+  <audio id="leaderboardSound" preload="auto">
+    <source src="leaderboard.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    window.addEventListener('load', () => {
+      const sound = document.getElementById('leaderboardSound');
+      sound.play().catch(err => {
+        console.warn("Autoplay blocked. Waiting for user interaction.");
+        document.body.addEventListener('click', () => sound.play(), { once: true });
+      });
+    });
+  </script>
+
+  <!-- your leaderboard HTML goes here -->
+
   <h1>Final Scores</h1>
   <div id="leaderboard"></div>
 
